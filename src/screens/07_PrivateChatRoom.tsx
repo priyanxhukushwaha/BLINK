@@ -208,3 +208,4 @@ export const PrivateChatRoom: React.FC = () => {
     </div>
   );
 };
+

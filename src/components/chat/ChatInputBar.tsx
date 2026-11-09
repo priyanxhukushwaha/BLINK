@@ -194,3 +194,4 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
     </div>
   );
 };
+
