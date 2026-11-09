@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCheck, Check, Clock } from 'lucide-react';
+import { CheckCheck, Check, Clock, Sparkles } from 'lucide-react';
 import { Message } from '../../types/chat';
 import { NeonAvatar } from '../common/NeonAvatar';
 import { ParticleDisintegration } from './ParticleDisintegration';
@@ -10,6 +10,7 @@ interface FloatingMessageProps {
   showSender?: boolean;
   onExpire?: (messageId: string) => void;
   onAvatarClick?: () => void;
+  onSimulateRead?: (messageId: string) => void;
 }
 
 export const FloatingMessage: React.FC<FloatingMessageProps> = ({
@@ -17,6 +18,7 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
   showSender = false,
   onExpire,
   onAvatarClick,
+  onSimulateRead,
 }) => {
   const [remainingMs, setRemainingMs] = useState<number>(() =>
     getRemainingTimeMs(message)
@@ -30,15 +32,14 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
       const rem = getRemainingTimeMs(message);
       setRemainingMs(rem);
 
-      if (rem <= 3000 && rem > 0 && !isVaporizing) {
-        setIsVaporizing(true);
-      } else if (rem <= 0 && !isDisintegrated) {
+      // Trigger particle disintegration at expiration deadline
+      if (rem <= 0 && !isVaporizing && !isDisintegrated) {
         setIsVaporizing(true);
       }
     };
 
     checkTimer();
-    const interval = setInterval(checkTimer, 1000);
+    const interval = setInterval(checkTimer, 500);
     return () => clearInterval(interval);
   }, [message, isVaporizing, isDisintegrated]);
 
@@ -54,14 +55,15 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
   }
 
   const isOutgoing = message.isOutgoing;
+  const isAwaitingRead = isOutgoing && message.firstReadAt === null;
   const timeFormatted = formatRemainingTime(remainingMs);
-  const isExpiringSoon = remainingMs <= 10000; // Under 10 seconds
+  const isExpiringSoon = remainingMs <= 10000 && !isAwaitingRead; // Under 10s
 
   return (
     <div
       className={`relative w-full flex my-3.5 transition-all duration-700 ${
         isOutgoing ? 'justify-end' : 'justify-start'
-      } ${isVaporizing ? 'opacity-30 blur-[2px] scale-95' : 'opacity-100'}`}
+      } ${isVaporizing ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100'}`}
     >
       {/* Particle Disintegration Canvas */}
       <ParticleDisintegration
@@ -120,7 +122,7 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
               <img
                 src={message.photoUrl}
                 alt="Shared moment"
-                className="w-full h-auto object-cover"
+                className="w-full h-auto object-cover max-h-56"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
             </div>
@@ -129,9 +131,7 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
           {/* Floating Message Text */}
           <div
             className={`relative py-1.5 px-3 rounded-2xl transition-all ${
-              isOutgoing
-                ? 'text-right'
-                : 'text-left'
+              isOutgoing ? 'text-right' : 'text-left'
             }`}
           >
             {/* Subtle ethereal back-gradient glow (no rigid borders, no heavy box) */}
@@ -154,17 +154,43 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
               {message.text}
             </p>
 
-            {/* Outgoing Metadata: Countdown + Status Ticks */}
+            {/* Outgoing Metadata: Countdown + Demo Status Ticks */}
             {isOutgoing && (
               <div className="relative z-10 flex items-center justify-end gap-1.5 mt-1 text-[10px] text-purple-300/60 font-mono">
-                <span className={isExpiringSoon ? 'text-amber-300 font-semibold' : ''}>
-                  {timeFormatted}
-                </span>
-                {message.status === 'read' ? (
-                  <CheckCheck className="w-3.5 h-3.5 text-cyan-400 stroke-[2.2]" />
+                {isAwaitingRead ? (
+                  <span className="text-purple-300/50">Unread (60m cap)</span>
                 ) : (
-                  <Check className="w-3.5 h-3.5 text-purple-300/70" />
+                  <span className={isExpiringSoon ? 'text-amber-300 font-semibold' : ''}>
+                    {timeFormatted}
+                  </span>
                 )}
+
+                {message.status === 'read' ? (
+                  <span className="inline-flex items-center gap-1 text-cyan-400" title="Read (Demo)">
+                    <CheckCheck className="w-3.5 h-3.5 stroke-[2.2]" />
+                    <span className="text-[9px] uppercase tracking-wider">Read (Demo)</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-purple-300/70" title="Sent (Demo)">
+                    <Check className="w-3.5 h-3.5" />
+                    <span className="text-[9px] uppercase tracking-wider">Sent (Demo)</span>
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Simulation trigger for demo testing when unread */}
+            {isAwaitingRead && onSimulateRead && (
+              <div className="relative z-10 mt-1.5 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => onSimulateRead(message.id)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono text-purple-300 bg-purple-950/70 border border-purple-500/30 hover:border-purple-400 hover:text-white transition-all shadow-[0_0_8px_rgba(168,85,247,0.2)]"
+                  title="Visibly simulate recipient reading the message"
+                >
+                  <Sparkles className="w-2.5 h-2.5 text-cyan-300" />
+                  <span>Simulate Recipient Read (Demo)</span>
+                </button>
               </div>
             )}
 
@@ -180,4 +206,3 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
     </div>
   );
 };
-

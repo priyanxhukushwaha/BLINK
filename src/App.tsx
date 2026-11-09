@@ -8,6 +8,8 @@ import { OnboardingFeatures } from './screens/03_OnboardingFeatures';
 import { HomeRooms } from './screens/04_HomeRooms';
 import { MyProfile } from './screens/05_MyProfile';
 import { FriendProfileScreen } from './screens/FriendProfileScreen';
+import { PrivateChatRoom } from './screens/07_PrivateChatRoom';
+import { MessageTimerModal } from './screens/09_MessageTimerModal';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { DevScreenSwitcher } from './components/dev/DevScreenSwitcher';
 
@@ -31,11 +33,11 @@ const AppContent: React.FC = () => {
       case 'settings':
         return <PlaceholderScreen screenNumber={6} title="Settings" />;
       case 'private-chat':
-        return <PlaceholderScreen screenNumber={7} title="Private Chat Room (Floating Text)" />;
+        return <PrivateChatRoom />;
       case 'group-chat':
         return <PlaceholderScreen screenNumber={8} title="Group Chat Room (Floating Text)" />;
       case 'message-timer':
-        return <PlaceholderScreen screenNumber={9} title="Message Timer Modal" />;
+        return <MessageTimerModal />;
       case 'invite-friends':
         return <PlaceholderScreen screenNumber={10} title="Invite Friends" />;
       case 'private-notifications':
