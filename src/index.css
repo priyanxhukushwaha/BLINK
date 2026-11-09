@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #040208;
+  color: #f3e8ff;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar for sleek futuristic feel */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(7, 3, 18, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.25);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(192, 132, 252, 0.45);
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: rgba(19, 10, 42, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(192, 132, 252, 0.12);
+}
+
+.glass-panel-elevated {
+  background: rgba(29, 16, 60, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(192, 132, 252, 0.22);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+/* Text glow utilities for ethereal floating messages */
+.text-glow-purple {
+  text-shadow: 0 0 12px rgba(168, 85, 247, 0.65), 0 0 24px rgba(168, 85, 247, 0.3);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 12px rgba(34, 211, 238, 0.65), 0 0 24px rgba(34, 211, 238, 0.3);
+}
+
+.text-shadow-floating {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* Glowing outline borders */
+.border-glow-purple {
+  box-shadow: 0 0 15px -3px rgba(168, 85, 247, 0.35);
+  border-color: rgba(192, 132, 252, 0.4);
+}
+
+.border-glow-cyan {
+  box-shadow: 0 0 15px -3px rgba(34, 211, 238, 0.35);
+  border-color: rgba(34, 211, 238, 0.4);
+}
+
+/* Animation utilities */
+@keyframes etherealWave {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(-12px) scale(1.03);
+    opacity: 0.8;
+  }
+}
+
+.animate-ethereal-wave {
+  animation: etherealWave 8s ease-in-out infinite;
+}
+
