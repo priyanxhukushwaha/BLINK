@@ -171,7 +171,7 @@ export const PrivateChatRoom: React.FC = () => {
             />
           ))
         ) : (
-          /* Ephemeral Empty State */
+          /* Blink Empty State */
           <div className="h-full flex flex-col items-center justify-center text-center p-6 my-auto animate-fade-in">
             <div className="w-14 h-14 rounded-full bg-purple-950/40 border border-purple-500/20 flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
               <Sparkles className="w-6 h-6 text-purple-400 animate-pulse" />

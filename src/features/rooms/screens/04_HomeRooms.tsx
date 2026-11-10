@@ -76,7 +76,7 @@ export const HomeRooms: React.FC = () => {
                 </svg>
               </div>
               <span className="text-base font-bold tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">
-                EPHEMERAL
+                BLINK
               </span>
             </div>
 
@@ -312,7 +312,7 @@ export const HomeRooms: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-neon-purple animate-pulse" />
                 <h3 className="text-sm font-bold text-white tracking-wide">
-                  New Ephemeral Action
+                  New Blink Action
                 </h3>
               </div>
               <button

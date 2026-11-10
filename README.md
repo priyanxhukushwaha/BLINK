@@ -1,8 +1,8 @@
-# EPHEMERAL
+# BLINK
 
 > **"Be present. Leave no history."**
 
-EPHEMERAL is a privacy-first real-time messaging platform designed for casual conversations between friends and groups. 
+BLINK is a privacy-first real-time messaging platform designed for casual conversations between friends and groups. 
 
 *"Just like spoken words disappear into memories, digital conversations should disappear too."*
 
@@ -43,7 +43,7 @@ EPHEMERAL is a privacy-first real-time messaging platform designed for casual co
 ```bash
 # Clone the repository
 git clone <YOUR_REPO_URL>
-cd EPHEMERAL
+cd BLINK
 
 # Install dependencies
 npm install

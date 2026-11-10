@@ -52,7 +52,7 @@ export const SplashScreen: React.FC = () => {
 
         {/* Brand Name */}
         <h1 className="text-3xl font-bold tracking-[0.25em] text-white drop-shadow-[0_0_15px_rgba(168,85,247,0.7)] text-center pl-2">
-          EPHEMERAL
+          BLINK
         </h1>
 
         {/* Tagline */}

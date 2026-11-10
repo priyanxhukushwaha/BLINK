@@ -5,7 +5,7 @@ export interface UserProfile {
   bio: string;
   avatarUrl: string;
   defaultTimerMinutes?: number; // default expiration timer preference (1, 5, 15, 30, 60)
-  inviteLink?: string; // e.g. 'ephemeral.app/invite/pkdev'
+  inviteLink?: string; // e.g. 'blink.app/invite/pkdev'
 }
 
 export interface Friend {

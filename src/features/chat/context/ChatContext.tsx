@@ -21,8 +21,8 @@ interface ChatContextType {
   getRoomById: (roomId: string) => ConversationRoom | undefined;
 }
 
-const STORAGE_KEY_MESSAGES = 'ephemeral_demo_messages_v1';
-const STORAGE_KEY_TIMERS = 'ephemeral_demo_room_timers_v1';
+const STORAGE_KEY_MESSAGES = 'blink_demo_messages_v1';
+const STORAGE_KEY_TIMERS = 'blink_demo_room_timers_v1';
 
 const CURRENT_USER: UserProfile = {
   id: 'user-me',
@@ -31,7 +31,7 @@ const CURRENT_USER: UserProfile = {
   bio: 'Just a moment here. ✨',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
   defaultTimerMinutes: 15,
-  inviteLink: 'ephemeral.app/invite/pkdev',
+  inviteLink: 'blink.app/invite/pkdev',
 };
 
 const FRIENDS_DATA: Friend[] = [
@@ -173,7 +173,7 @@ function safeSaveToLocalStorage(data: Record<string, Message[]>): boolean {
     localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(data));
     return true;
   } catch (error) {
-    console.warn('[EPHEMERAL Demo Persistence] localStorage write failed or quota exceeded:', error);
+    console.warn('[BLINK Demo Persistence] localStorage write failed or quota exceeded:', error);
     return false;
   }
 }
@@ -218,7 +218,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return unexpired;
       }
     } catch (e) {
-      console.warn('[EPHEMERAL Demo Persistence] Failed to load from localStorage:', e);
+      console.warn('[BLINK Demo Persistence] Failed to load from localStorage:', e);
     }
     return getSeedMessages();
   });
