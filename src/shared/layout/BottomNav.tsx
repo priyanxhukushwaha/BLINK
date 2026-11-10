@@ -1,6 +1,6 @@
 import React from 'react';
 import { Home, Users, Plus, MessageSquare, User } from 'lucide-react';
-import { BottomNavTab } from '../types/navigation';
+import { BottomNavTab } from '@/shared/types/navigation';
 
 interface BottomNavProps {
   activeTab: BottomNavTab;

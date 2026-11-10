@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ScreenId, BottomNavTab, NavigationState } from '../types/navigation';
+import { ScreenId, BottomNavTab, NavigationState } from '@/shared/types/navigation';
 
 interface NavigationContextType extends NavigationState {
   navigateTo: (screen: ScreenId, params?: { roomId?: string; friendId?: string }) => void;

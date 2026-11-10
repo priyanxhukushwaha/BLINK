@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { Copy, Check, ChevronRight, Settings, Clock, Shield, UserPlus, LogOut, MessageSquare } from 'lucide-react';
-import { StatusBar } from '../../../shared/components/StatusBar';
-import { BackButton } from '../../../shared/components/BackButton';
-import { NeonAvatar } from '../../../shared/components/NeonAvatar';
-import { GlassCard } from '../../../shared/components/GlassCard';
-import { GlowButton } from '../../../shared/components/GlowButton';
+import { StatusBar, BackButton, NeonAvatar, GlassCard, GlowButton } from '@/shared';
 import { UserProfile, Friend } from '../types/user';
 
 interface ProfileViewProps {

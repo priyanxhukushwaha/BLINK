@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
 import { Clock, Check, X } from 'lucide-react';
-import { StatusBar } from '../../../shared/components/StatusBar';
-import { BackButton } from '../../../shared/components/BackButton';
-import { GlowButton } from '../../../shared/components/GlowButton';
-import { GlassCard } from '../../../shared/components/GlassCard';
-import { TimerOptionMinutes } from '../types/chat';
-import { useChat } from '../context/ChatContext';
-import { useNavigation } from '../../../shared/context/NavigationContext';
+import { StatusBar, BackButton, GlowButton, GlassCard, useNavigation } from '@/shared';
+import { TimerOptionMinutes, useChat } from '@/features/chat';
 
 const TIMER_OPTIONS: { minutes: TimerOptionMinutes; label: string }[] = [
   { minutes: 1, label: '1 Minute' },

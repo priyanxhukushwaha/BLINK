@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { StatusBar } from '../../../shared/components/StatusBar';
-import { useNavigation } from '../../../shared/context/NavigationContext';
+import { StatusBar, useNavigation } from '@/shared';
 
 export const SplashScreen: React.FC = () => {
   const { navigateTo } = useNavigation();

@@ -1,7 +1,7 @@
 import React from 'react';
-import { ProfileView } from '../components/ProfileView';
-import { useNavigation } from '../../../shared/context/NavigationContext';
-import { useChat } from '../../chat/context/ChatContext';
+import { ProfileView } from '@/features/profile';
+import { useNavigation } from '@/shared';
+import { useChat } from '@/features/chat';
 
 export const MyProfile: React.FC = () => {
   const { goBack, navigateTo } = useNavigation();

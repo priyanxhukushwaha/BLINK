@@ -1,5 +1,5 @@
 import React from 'react';
-import { AmbientGlowBackground } from '../components/AmbientGlowBackground';
+import { AmbientGlowBackground } from '@/shared/components/AmbientGlowBackground';
 
 interface ResponsiveContainerProps {
   children: React.ReactNode;

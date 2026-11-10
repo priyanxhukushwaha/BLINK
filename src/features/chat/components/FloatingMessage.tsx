@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCheck, Check, Clock, Sparkles } from 'lucide-react';
-import { Message } from '../types/chat';
-import { NeonAvatar } from '../../../shared/components/NeonAvatar';
+import { Message } from '@/features/chat/types/chat';
+import { NeonAvatar } from '@/shared';
 import { ParticleDisintegration } from './ParticleDisintegration';
-import { getRemainingTimeMs, formatRemainingTime } from '../utils/expiration';
+import { getRemainingTimeMs, formatRemainingTime } from '@/features/chat/utils/expiration';
 
 interface FloatingMessageProps {
   message: Message;

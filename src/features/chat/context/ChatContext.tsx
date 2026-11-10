@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Message, ConversationRoom, TimerOptionMinutes } from '../types/chat';
-import { UserProfile, Friend } from '../../profile/types/user';
-import { calculateExpirationTime, isMessageExpired } from '../utils/expiration';
+import { Message, ConversationRoom, TimerOptionMinutes } from '@/features/chat/types/chat';
+import { UserProfile, Friend } from '@/features/profile';
+import { calculateExpirationTime, isMessageExpired } from '@/features/chat/utils/expiration';
 
 interface ChatContextType {
   currentUser: UserProfile;

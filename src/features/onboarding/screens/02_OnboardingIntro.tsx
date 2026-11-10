@@ -1,8 +1,6 @@
 import React from 'react';
 import { ArrowRight, Clock } from 'lucide-react';
-import { StatusBar } from '../../../shared/components/StatusBar';
-import { GlowButton } from '../../../shared/components/GlowButton';
-import { useNavigation } from '../../../shared/context/NavigationContext';
+import { StatusBar, GlowButton, useNavigation } from '@/shared';
 
 export const OnboardingIntro: React.FC = () => {
   const { navigateTo } = useNavigation();

@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Bell, Clock, Users, X, MessageSquare, Plus, UserPlus, Sparkles, MessageCircle } from 'lucide-react';
-import { StatusBar } from '../../../shared/components/StatusBar';
-import { NeonAvatar } from '../../../shared/components/NeonAvatar';
-import { BottomNav } from '../../../shared/layout/BottomNav';
-import { GlassCard } from '../../../shared/components/GlassCard';
-import { useNavigation } from '../../../shared/context/NavigationContext';
-import { useChat } from '../../chat/context/ChatContext';
+import { StatusBar, NeonAvatar, BottomNav, GlassCard, useNavigation } from '@/shared';
+import { useChat } from '@/features/chat';
 
 export const HomeRooms: React.FC = () => {
   const { navigateTo, activeNavTab, setActiveNavTab } = useNavigation();

@@ -1,8 +1,5 @@
 import React from 'react';
-import { StatusBar } from '../components/StatusBar';
-import { BackButton } from '../components/BackButton';
-import { GlowButton } from '../components/GlowButton';
-import { useNavigation } from '../context/NavigationContext';
+import { StatusBar, BackButton, GlowButton, useNavigation } from '@/shared';
 
 interface PlaceholderScreenProps {
   title: string;

@@ -5,22 +5,22 @@ import {
   ResponsiveContainer,
   DevScreenSwitcher,
   PlaceholderScreen,
-} from './shared';
+} from '@/shared';
 import {
   SplashScreen,
   OnboardingIntro,
   OnboardingFeatures,
-} from './features/onboarding';
-import { HomeRooms } from './features/rooms';
+} from '@/features/onboarding';
+import { HomeRooms } from '@/features/rooms';
 import {
   MyProfile,
   FriendProfileScreen,
-} from './features/profile';
+} from '@/features/profile';
 import {
   ChatProvider,
   PrivateChatRoom,
   MessageTimerModal,
-} from './features/chat';
+} from '@/features/chat';
 
 const AppContent: React.FC = () => {
   const { currentScreen } = useNavigation();

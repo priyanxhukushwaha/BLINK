@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Particle, createParticlesAt, updateAndRenderParticles } from '../utils/particlePhysics';
+import { Particle, createParticlesAt, updateAndRenderParticles } from '@/features/chat/utils/particlePhysics';
 
 interface ParticleDisintegrationProps {
   active: boolean;

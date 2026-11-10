@@ -1,6 +1,5 @@
 import React from 'react';
-import { ScreenId } from '../types/navigation';
-import { useNavigation } from '../context/NavigationContext';
+import { ScreenId, useNavigation } from '@/shared';
 
 const SCREENS: { id: ScreenId; label: string; number: number }[] = [
   { id: 'splash', label: 'Splash Screen', number: 1 },

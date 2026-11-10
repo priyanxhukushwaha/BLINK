@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, MoreVertical, Sparkles, AlertCircle, X, Shield } from 'lucide-react';
-import { StatusBar } from '../../../shared/components/StatusBar';
-import { BackButton } from '../../../shared/components/BackButton';
-import { NeonAvatar } from '../../../shared/components/NeonAvatar';
-import { FloatingMessage } from '../components/FloatingMessage';
-import { ChatInputBar } from '../components/ChatInputBar';
-import { MessageTimerModal } from './09_MessageTimerModal';
-import { useNavigation } from '../../../shared/context/NavigationContext';
-import { useChat } from '../context/ChatContext';
+import { StatusBar, BackButton, NeonAvatar, useNavigation } from '@/shared';
+import { FloatingMessage, ChatInputBar, MessageTimerModal, useChat } from '@/features/chat';
 
 export const PrivateChatRoom: React.FC = () => {
   const { goBack, navigateTo, activeRoomId, selectedFriendId } = useNavigation();
