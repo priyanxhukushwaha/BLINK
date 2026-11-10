@@ -1,17 +1,26 @@
 import React from 'react';
-import { NavigationProvider, useNavigation } from './context/NavigationContext';
-import { ChatProvider } from './context/ChatContext';
-import { ResponsiveContainer } from './components/layout/ResponsiveContainer';
-import { SplashScreen } from './screens/01_SplashScreen';
-import { OnboardingIntro } from './screens/02_OnboardingIntro';
-import { OnboardingFeatures } from './screens/03_OnboardingFeatures';
-import { HomeRooms } from './screens/04_HomeRooms';
-import { MyProfile } from './screens/05_MyProfile';
-import { FriendProfileScreen } from './screens/FriendProfileScreen';
-import { PrivateChatRoom } from './screens/07_PrivateChatRoom';
-import { MessageTimerModal } from './screens/09_MessageTimerModal';
-import { PlaceholderScreen } from './screens/PlaceholderScreen';
-import { DevScreenSwitcher } from './components/dev/DevScreenSwitcher';
+import {
+  NavigationProvider,
+  useNavigation,
+  ResponsiveContainer,
+  DevScreenSwitcher,
+  PlaceholderScreen,
+} from '@/shared';
+import {
+  SplashScreen,
+  OnboardingIntro,
+  OnboardingFeatures,
+} from '@/features/onboarding';
+import { HomeRooms } from '@/features/rooms';
+import {
+  MyProfile,
+  FriendProfileScreen,
+} from '@/features/profile';
+import {
+  ChatProvider,
+  PrivateChatRoom,
+  MessageTimerModal,
+} from '@/features/chat';
 
 const AppContent: React.FC = () => {
   const { currentScreen } = useNavigation();
