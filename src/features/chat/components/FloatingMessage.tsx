@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCheck, Check, Clock, Sparkles } from 'lucide-react';
+import { CheckCheck, Check, Clock, Sparkles, Users } from 'lucide-react';
 import { Message } from '@/features/chat/types/chat';
 import { NeonAvatar } from '@/shared';
 import { ParticleDisintegration } from './ParticleDisintegration';
@@ -11,6 +11,8 @@ interface FloatingMessageProps {
   onExpire?: (messageId: string) => void;
   onAvatarClick?: () => void;
   onSimulateRead?: (messageId: string) => void;
+  onSimulateGroupRead?: (messageId: string, memberName: string) => void;
+  isGroupChat?: boolean;
 }
 
 export const FloatingMessage: React.FC<FloatingMessageProps> = ({
@@ -19,6 +21,8 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
   onExpire,
   onAvatarClick,
   onSimulateRead,
+  onSimulateGroupRead,
+  isGroupChat = false,
 }) => {
   const [remainingMs, setRemainingMs] = useState<number>(() =>
     getRemainingTimeMs(message)
@@ -58,6 +62,10 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
   const isAwaitingRead = isOutgoing && message.firstReadAt === null;
   const timeFormatted = formatRemainingTime(remainingMs);
   const isExpiringSoon = remainingMs <= 10000 && !isAwaitingRead; // Under 10s
+
+  const firstReader = message.firstReadBy || 'Someone';
+  const readByList = message.readBy || [];
+  const otherReadersCount = Math.max(0, readByList.length - 1);
 
   return (
     <div
@@ -113,6 +121,11 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
                 <Clock className="w-2.5 h-2.5" />
                 {timeFormatted}
               </span>
+              {message.firstReadBy && (
+                <span className="text-[9px] text-cyan-300/60 font-mono">
+                  (1st: {message.firstReadBy})
+                </span>
+              )}
             </div>
           )}
 
@@ -161,7 +174,7 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
                   <span className="text-purple-300/50">Unread (60m cap)</span>
                 ) : (
                   <span className={isExpiringSoon ? 'text-amber-300 font-semibold' : ''}>
-                    {timeFormatted}
+                    {isGroupChat ? `1st seen by ${firstReader} · ${timeFormatted}` : timeFormatted}
                   </span>
                 )}
 
@@ -179,8 +192,61 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
               </div>
             )}
 
-            {/* Simulation trigger for demo testing when unread */}
-            {isAwaitingRead && onSimulateRead && (
+            {/* Group Simulation Triggers */}
+            {isGroupChat && isOutgoing && onSimulateGroupRead && (
+              <div className="relative z-10 mt-1.5 flex flex-wrap gap-1 justify-end">
+                {isAwaitingRead ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => onSimulateGroupRead(message.id, 'Meera')}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono text-purple-300 bg-purple-950/70 border border-purple-500/30 hover:border-purple-400 hover:text-white transition-all shadow-[0_0_8px_rgba(168,85,247,0.2)]"
+                      title="Simulate Meera being the first to read (starts shared timer)"
+                    >
+                      <Sparkles className="w-2.5 h-2.5 text-cyan-300" />
+                      <span>Simulate 1st Read: Meera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSimulateGroupRead(message.id, 'Kabir')}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono text-purple-300 bg-purple-950/70 border border-purple-500/30 hover:border-purple-400 hover:text-white transition-all"
+                      title="Simulate Kabir being the first to read (starts shared timer)"
+                    >
+                      <span>Simulate 1st Read: Kabir</span>
+                    </button>
+                  </>
+                ) : (
+                  /* Already first-read: allow testing that subsequent readers DO NOT reset the timer */
+                  <div className="inline-flex items-center gap-1.5 text-[9px] font-mono text-purple-300/70 bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-500/20">
+                    <Users className="w-2.5 h-2.5 text-cyan-300" />
+                    <span>Read by: {readByList.join(', ')}</span>
+                    {!readByList.includes('Kabir') && (
+                      <button
+                        type="button"
+                        onClick={() => onSimulateGroupRead(message.id, 'Kabir')}
+                        className="text-cyan-300 hover:text-white underline ml-1"
+                        title="Simulate Kabir reading afterward (verifies timer does NOT reset)"
+                      >
+                        +Kabir reads too
+                      </button>
+                    )}
+                    {!readByList.includes('Tanya') && (
+                      <button
+                        type="button"
+                        onClick={() => onSimulateGroupRead(message.id, 'Tanya')}
+                        className="text-cyan-300 hover:text-white underline ml-1"
+                        title="Simulate Tanya reading afterward (verifies timer does NOT reset)"
+                      >
+                        +Tanya reads too
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 1-on-1 Simulation Trigger */}
+            {!isGroupChat && isAwaitingRead && onSimulateRead && (
               <div className="relative z-10 mt-1.5 flex justify-end">
                 <button
                   type="button"

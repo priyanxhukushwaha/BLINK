@@ -19,6 +19,7 @@ import {
 import {
   ChatProvider,
   PrivateChatRoom,
+  GroupChatRoom,
   MessageTimerModal,
 } from '@/features/chat';
 
@@ -44,7 +45,7 @@ const AppContent: React.FC = () => {
       case 'private-chat':
         return <PrivateChatRoom />;
       case 'group-chat':
-        return <PlaceholderScreen screenNumber={8} title="Group Chat Room (Floating Text)" />;
+        return <GroupChatRoom />;
       case 'message-timer':
         return <MessageTimerModal />;
       case 'invite-friends':
