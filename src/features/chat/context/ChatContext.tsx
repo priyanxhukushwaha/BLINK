@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Message, ConversationRoom, TimerOptionMinutes } from '../types/chat';
 import { UserProfile, Friend } from '@/features/profile/types/user';
 import { calculateExpirationTime, isMessageExpired } from '../utils/expiration';
+import { getMemberDisplayName, normalizeMemberId } from '../utils/memberUtils';
 
 interface ChatContextType {
   currentUser: UserProfile;
@@ -13,7 +14,7 @@ interface ChatContextType {
   clearStorageError: () => void;
   sendMessage: (roomId: string, text: string, photoUrl?: string) => boolean;
   simulateRecipientRead: (roomId: string, messageId: string) => void;
-  simulateGroupMemberRead: (roomId: string, messageId: string, memberName: string) => void;
+  simulateGroupMemberRead: (roomId: string, messageId: string, memberId: string) => void;
   markIncomingAsRead: (roomId: string) => void;
   evictExpiredMessage: (roomId: string, messageId: string) => void;
   setRoomTimer: (roomId: string, minutes: TimerOptionMinutes) => void;
@@ -22,8 +23,9 @@ interface ChatContextType {
   getRoomById: (roomId: string) => ConversationRoom | undefined;
 }
 
-const STORAGE_KEY_MESSAGES = 'ephemeral_demo_messages_v2';
-const STORAGE_KEY_TIMERS = 'ephemeral_demo_room_timers_v2';
+export const STORAGE_KEY_MESSAGES_V1 = 'ephemeral_messages_v1';
+export const STORAGE_KEY_MESSAGES_V2 = 'ephemeral_demo_messages_v2';
+export const STORAGE_KEY_TIMERS = 'ephemeral_demo_room_timers_v2';
 
 const CURRENT_USER: UserProfile = {
   id: 'user-me',
@@ -197,8 +199,8 @@ const getSeedMessages = (): Record<string, Message[]> => {
         text: 'Project ka final review kal hai! ⏳',
         sentAt: now - 360000,
         firstReadAt: now - 300000,
-        firstReadBy: 'Kabir',
-        readBy: ['Kabir', 'You', 'Tanya'],
+        firstReadBy: 'user-kabir',
+        readBy: ['user-kabir', 'user-me', 'user-tanya'],
         timerDurationMs: 30 * 60 * 1000,
         isOutgoing: false,
         status: 'read',
@@ -212,8 +214,8 @@ const getSeedMessages = (): Record<string, Message[]> => {
         text: 'Same, ready ho?',
         sentAt: now - 240000,
         firstReadAt: now - 180000,
-        firstReadBy: 'Meera',
-        readBy: ['Meera', 'You'],
+        firstReadBy: 'user-meera',
+        readBy: ['user-meera', 'user-me'],
         timerDurationMs: 30 * 60 * 1000,
         isOutgoing: false,
         status: 'read',
@@ -227,8 +229,8 @@ const getSeedMessages = (): Record<string, Message[]> => {
         text: 'Haan, docs bhej do.',
         sentAt: now - 120000,
         firstReadAt: now - 60000,
-        firstReadBy: 'Tanya',
-        readBy: ['Tanya', 'Meera'],
+        firstReadBy: 'user-tanya',
+        readBy: ['user-tanya', 'user-meera'],
         timerDurationMs: 30 * 60 * 1000,
         isOutgoing: true,
         status: 'read',
@@ -242,8 +244,8 @@ const getSeedMessages = (): Record<string, Message[]> => {
         text: 'Main bhi ready hu! 🚀',
         sentAt: now - 45000,
         firstReadAt: now - 30000,
-        firstReadBy: 'Meera',
-        readBy: ['Meera', 'Kabir'],
+        firstReadBy: 'user-meera',
+        readBy: ['user-meera', 'user-kabir'],
         timerDurationMs: 30 * 60 * 1000,
         isOutgoing: false,
         status: 'read',
@@ -254,11 +256,116 @@ const getSeedMessages = (): Record<string, Message[]> => {
 
 function safeSaveToLocalStorage(data: Record<string, Message[]>): boolean {
   try {
-    localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY_MESSAGES_V2, JSON.stringify(data));
     return true;
   } catch (error) {
     console.warn('[BLINK Demo Persistence] localStorage write failed or quota exceeded:', error);
     return false;
+  }
+}
+
+/**
+ * Safely migrates and synchronizes messages:
+ * 1. Checks v2 storage ('ephemeral_demo_messages_v2').
+ * 2. Checks v1 storage ('ephemeral_messages_v1') and cleanly imports any existing Private Chat messages.
+ * 3. Preserves original timestamps, expiration deadlines, and read states.
+ * 4. Normalizes firstReadBy and readBy to stable member IDs (e.g. 'user-meera', 'user-kabir').
+ * 5. Guarantees Group Chat ('room-late-night') is present without overwriting Private Chat.
+ * 6. Completely idempotent; safe when run multiple times; never duplicates messages.
+ * 7. Non-destructive: leaves v1 intact in localStorage.
+ */
+export function loadAndMigrateMessages(): Record<string, Message[]> {
+  const now = Date.now();
+  const seed = getSeedMessages();
+
+  try {
+    const v2Raw = localStorage.getItem(STORAGE_KEY_MESSAGES_V2);
+    const v1Raw = localStorage.getItem(STORAGE_KEY_MESSAGES_V1);
+
+    let baseData: Record<string, Message[]> = {};
+
+    if (v2Raw) {
+      baseData = JSON.parse(v2Raw);
+    } else if (v1Raw) {
+      baseData = JSON.parse(v1Raw);
+    }
+
+    // If v1 had private chat messages that are missing from baseData, merge them without duplicating
+    if (v1Raw && v2Raw) {
+      try {
+        const v1Parsed: Record<string, Message[]> = JSON.parse(v1Raw);
+        for (const [roomId, v1Msgs] of Object.entries(v1Parsed)) {
+          if (!baseData[roomId] || baseData[roomId].length === 0) {
+            baseData[roomId] = v1Msgs;
+          } else {
+            const existingIds = new Set(baseData[roomId].map((m) => m.id));
+            const missingFromV2 = v1Msgs.filter((m) => !existingIds.has(m.id));
+            if (missingFromV2.length > 0) {
+              baseData[roomId] = [...baseData[roomId], ...missingFromV2];
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[BLINK Migration] Failed to merge v1 secondary data:', e);
+      }
+    }
+
+    // If baseData has no messages at all, initialize with seed
+    if (Object.keys(baseData).length === 0) {
+      safeSaveToLocalStorage(seed);
+      return seed;
+    }
+
+    // Ensure Group Chat is initialized if missing in migrated v1 data
+    if (!baseData['room-late-night'] || baseData['room-late-night'].length === 0) {
+      baseData['room-late-night'] = seed['room-late-night'] || [];
+    }
+
+    // Normalize IDs and filter expired messages
+    const processed: Record<string, Message[]> = {};
+    for (const [roomId, roomMsgs] of Object.entries(baseData)) {
+      if (!Array.isArray(roomMsgs)) continue;
+
+      const deduplicated: Message[] = [];
+      const seenIds = new Set<string>();
+
+      for (const rawMsg of roomMsgs) {
+        if (!rawMsg || !rawMsg.id || seenIds.has(rawMsg.id)) continue;
+        seenIds.add(rawMsg.id);
+
+        // Normalize firstReadBy and readBy to stable member IDs
+        const normalizedFirstReadBy = normalizeMemberId(rawMsg.firstReadBy);
+        const normalizedReadBy = Array.isArray(rawMsg.readBy)
+          ? Array.from(
+              new Set(
+                rawMsg.readBy
+                  .map((r) => normalizeMemberId(r))
+                  .filter((r): r is string => Boolean(r))
+              )
+            )
+          : [];
+
+        const normalizedMsg: Message = {
+          ...rawMsg,
+          firstReadBy: normalizedFirstReadBy,
+          readBy: normalizedReadBy,
+        };
+
+        // Boot filter: keep only unexpired messages
+        if (!isMessageExpired(normalizedMsg, now)) {
+          deduplicated.push(normalizedMsg);
+        }
+      }
+
+      processed[roomId] = deduplicated;
+    }
+
+    // Persist migrated & normalized data to v2
+    safeSaveToLocalStorage(processed);
+    return processed;
+  } catch (err) {
+    console.error('[BLINK Migration] Error during loadAndMigrateMessages:', err);
+    return seed;
   }
 }
 
@@ -286,24 +393,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeRoomTimer, setActiveRoomTimer] = useState<TimerOptionMinutes>(30);
   const [storageError, setStorageError] = useState<string | null>(null);
 
-  // Initialize messages with demo localStorage persistence & boot expiration purge
+  // Initialize messages with migration, normalization, and boot expiration purge
   const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_MESSAGES);
-      if (saved) {
-        const parsed: Record<string, Message[]> = JSON.parse(saved);
-        const now = Date.now();
-        const unexpired: Record<string, Message[]> = {};
-
-        for (const [roomId, roomMsgs] of Object.entries(parsed)) {
-          unexpired[roomId] = roomMsgs.filter((msg) => !isMessageExpired(msg, now));
-        }
-        return unexpired;
-      }
-    } catch (e) {
-      console.warn('[BLINK Demo Persistence] Failed to load from localStorage:', e);
-    }
-    return getSeedMessages();
+    return loadAndMigrateMessages();
   });
 
   const clearStorageError = () => setStorageError(null);
@@ -401,8 +493,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return {
             ...msg,
             firstReadAt: readTimestamp,
-            firstReadBy: 'Aryan',
-            readBy: ['Aryan'],
+            firstReadBy: 'user-aryan',
+            readBy: ['user-aryan'],
             status: 'read' as const,
           };
         }
@@ -417,33 +509,34 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   /**
    * Group Chat: "First Seen, Starts Timer" Implementation:
-   * 1. If firstReadAt is null: locks firstReadAt and firstReadBy permanently to this member!
+   * 1. If firstReadAt is null: locks firstReadAt and firstReadBy permanently to this member's stable ID!
    * 2. If firstReadAt is already set: NEVER overwrites firstReadAt or firstReadBy!
-   *    Simply adds the member to readBy array.
+   *    Simply adds the member's stable ID to readBy array.
    */
-  const simulateGroupMemberRead = (roomId: string, messageId: string, memberName: string) => {
+  const simulateGroupMemberRead = (roomId: string, messageId: string, memberId: string) => {
     const readTimestamp = Date.now();
+    const stableId = normalizeMemberId(memberId) || memberId;
 
     setMessages((prev) => {
       const roomMsgs = prev[roomId] || [];
       const updated = roomMsgs.map((msg) => {
         if (msg.id === messageId) {
           const currentReadBy = msg.readBy || [];
-          const updatedReadBy = currentReadBy.includes(memberName)
+          const updatedReadBy = currentReadBy.includes(stableId)
             ? currentReadBy
-            : [...currentReadBy, memberName];
+            : [...currentReadBy, stableId];
 
-          // Critical Rule: Lock firstReadAt ONLY ONCE
+          // Critical Rule: Lock firstReadAt & firstReadBy ONLY ONCE
           if (msg.firstReadAt === null) {
             return {
               ...msg,
               firstReadAt: readTimestamp,
-              firstReadBy: memberName,
+              firstReadBy: stableId,
               readBy: updatedReadBy,
               status: 'read' as const,
             };
           } else {
-            // Already read: firstReadAt & firstReadBy REMAIN UNCHANGED
+            // Already read: firstReadAt & firstReadBy REMAIN STRICTLY UNCHANGED
             return {
               ...msg,
               readBy: updatedReadBy,
@@ -460,7 +553,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /**
-   * When user opens chat, incoming unread messages are marked as seen by the current user.
+   * When user opens chat, incoming unread messages are marked as seen by the current user ('user-me').
    * If message was never read by anyone, current user locks firstReadAt!
    */
   const markIncomingAsRead = (roomId: string) => {
@@ -472,22 +565,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updated = roomMsgs.map((msg) => {
         if (!msg.isOutgoing) {
           const currentReadBy = msg.readBy || [];
-          const isAlreadyInReadBy = currentReadBy.includes('You');
+          const isAlreadyInReadBy = currentReadBy.includes('user-me');
 
           if (msg.firstReadAt === null) {
             hasChanges = true;
             return {
               ...msg,
               firstReadAt: now,
-              firstReadBy: 'You',
-              readBy: isAlreadyInReadBy ? currentReadBy : [...currentReadBy, 'You'],
+              firstReadBy: 'user-me',
+              readBy: isAlreadyInReadBy ? currentReadBy : [...currentReadBy, 'user-me'],
               status: 'read' as const,
             };
           } else if (!isAlreadyInReadBy) {
             hasChanges = true;
             return {
               ...msg,
-              readBy: [...currentReadBy, 'You'],
+              readBy: [...currentReadBy, 'user-me'],
             };
           }
         }

@@ -1,6 +1,7 @@
 export * from './types/chat';
 export * from './utils/expiration';
 export * from './utils/particlePhysics';
+export * from './utils/memberUtils';
 export * from './components/ParticleDisintegration';
 export * from './components/FloatingMessage';
 export * from './components/ChatInputBar';

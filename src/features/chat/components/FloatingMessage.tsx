@@ -4,6 +4,7 @@ import { Message } from '@/features/chat/types/chat';
 import { NeonAvatar } from '@/shared';
 import { ParticleDisintegration } from './ParticleDisintegration';
 import { getRemainingTimeMs, formatRemainingTime } from '@/features/chat/utils/expiration';
+import { getMemberDisplayName } from '@/features/chat/utils/memberUtils';
 
 interface FloatingMessageProps {
   message: Message;
@@ -63,8 +64,9 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
   const timeFormatted = formatRemainingTime(remainingMs);
   const isExpiringSoon = remainingMs <= 10000 && !isAwaitingRead; // Under 10s
 
-  const firstReader = message.firstReadBy || 'Someone';
+  const firstReaderDisplayName = getMemberDisplayName(message.firstReadBy);
   const readByList = message.readBy || [];
+  const readByDisplayNames = readByList.map((id) => getMemberDisplayName(id));
   const otherReadersCount = Math.max(0, readByList.length - 1);
 
   return (
@@ -123,7 +125,7 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
               </span>
               {message.firstReadBy && (
                 <span className="text-[9px] text-cyan-300/60 font-mono">
-                  (1st: {message.firstReadBy})
+                  (1st: {getMemberDisplayName(message.firstReadBy)})
                 </span>
               )}
             </div>
@@ -174,7 +176,7 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
                   <span className="text-purple-300/50">Unread (60m cap)</span>
                 ) : (
                   <span className={isExpiringSoon ? 'text-amber-300 font-semibold' : ''}>
-                    {isGroupChat ? `1st seen by ${firstReader} · ${timeFormatted}` : timeFormatted}
+                    {isGroupChat ? `1st seen by ${firstReaderDisplayName} · ${timeFormatted}` : timeFormatted}
                   </span>
                 )}
 
@@ -199,7 +201,7 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
                   <>
                     <button
                       type="button"
-                      onClick={() => onSimulateGroupRead(message.id, 'Meera')}
+                      onClick={() => onSimulateGroupRead(message.id, 'user-meera')}
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono text-purple-300 bg-purple-950/70 border border-purple-500/30 hover:border-purple-400 hover:text-white transition-all shadow-[0_0_8px_rgba(168,85,247,0.2)]"
                       title="Simulate Meera being the first to read (starts shared timer)"
                     >
@@ -208,7 +210,7 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => onSimulateGroupRead(message.id, 'Kabir')}
+                      onClick={() => onSimulateGroupRead(message.id, 'user-kabir')}
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono text-purple-300 bg-purple-950/70 border border-purple-500/30 hover:border-purple-400 hover:text-white transition-all"
                       title="Simulate Kabir being the first to read (starts shared timer)"
                     >
@@ -219,21 +221,21 @@ export const FloatingMessage: React.FC<FloatingMessageProps> = ({
                   /* Already first-read: allow testing that subsequent readers DO NOT reset the timer */
                   <div className="inline-flex items-center gap-1.5 text-[9px] font-mono text-purple-300/70 bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-500/20">
                     <Users className="w-2.5 h-2.5 text-cyan-300" />
-                    <span>Read by: {readByList.join(', ')}</span>
-                    {!readByList.includes('Kabir') && (
+                    <span>Read by: {readByDisplayNames.join(', ')}</span>
+                    {!readByList.includes('user-kabir') && (
                       <button
                         type="button"
-                        onClick={() => onSimulateGroupRead(message.id, 'Kabir')}
+                        onClick={() => onSimulateGroupRead(message.id, 'user-kabir')}
                         className="text-cyan-300 hover:text-white underline ml-1"
                         title="Simulate Kabir reading afterward (verifies timer does NOT reset)"
                       >
                         +Kabir reads too
                       </button>
                     )}
-                    {!readByList.includes('Tanya') && (
+                    {!readByList.includes('user-tanya') && (
                       <button
                         type="button"
-                        onClick={() => onSimulateGroupRead(message.id, 'Tanya')}
+                        onClick={() => onSimulateGroupRead(message.id, 'user-tanya')}
                         className="text-cyan-300 hover:text-white underline ml-1"
                         title="Simulate Tanya reading afterward (verifies timer does NOT reset)"
                       >

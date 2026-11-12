@@ -53,15 +53,19 @@ export const GroupChatRoom: React.FC = () => {
     navigateTo('friend-profile', { friendId: adminId });
   };
 
-  const handleOpenMemberProfile = (senderName: string) => {
-    // Map member name to friend ID
+  const handleOpenMemberProfile = (senderIdOrName: string) => {
+    // Map member ID or name to friend ID
     const friendIdMap: Record<string, string> = {
+      'user-meera': 'user-meera',
+      'user-kabir': 'user-kabir',
+      'user-tanya': 'user-tanya',
+      'user-aryan': 'user-aryan',
       Meera: 'user-meera',
       Kabir: 'user-kabir',
       Tanya: 'user-tanya',
       Aryan: 'user-aryan',
     };
-    const targetId = friendIdMap[senderName] || 'user-meera';
+    const targetId = friendIdMap[senderIdOrName] || 'user-meera';
     navigateTo('friend-profile', { friendId: targetId });
   };
 
@@ -206,9 +210,9 @@ export const GroupChatRoom: React.FC = () => {
               message={msg}
               showSender={true}
               isGroupChat={true}
-              onAvatarClick={() => handleOpenMemberProfile(msg.senderName)}
-              onSimulateGroupRead={(messageId, memberName) =>
-                simulateGroupMemberRead(currentRoomId, messageId, memberName)
+              onAvatarClick={() => handleOpenMemberProfile(msg.senderId || msg.senderName)}
+              onSimulateGroupRead={(messageId, memberId) =>
+                simulateGroupMemberRead(currentRoomId, messageId, memberId)
               }
               onExpire={(messageId) => evictExpiredMessage(currentRoomId, messageId)}
             />

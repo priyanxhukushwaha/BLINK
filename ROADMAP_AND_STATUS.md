@@ -13,7 +13,7 @@
 | **Foundation & Design System** | ✅ Complete | 100% | Vite, React 18, TypeScript (strict), Tailwind CSS neon tokens, Glassmorphism, Plus Jakarta Sans. |
 | **Reusable Component Library** | ✅ Complete | 100% | `ProfileView`, `NeonAvatar`, `GlassCard`, `GlowButton`, `StatusBar`, `BackButton`, `BottomNav`, `ResponsiveContainer`. |
 | **VFX & Expiration Engine** | ✅ Complete | 100% | Wall-clock epoch expiration math, HTML5 Canvas glowing particle disintegration engine. |
-| **Approved UI Screens (12 Total)** | 🔄 In Progress | 58% (7 of 12 complete) | Screens 1, 2, 3, 4, 5, 7, 9 complete. Screens 6, 8, 10, 11, 12 pending. |
+| **Approved UI Screens (12 Total)** | 🔄 In Progress | 67% (8 of 12 complete) | Screens 1, 2, 3, 4, 5, 7, 8, 9 complete. Screens 6, 10, 11, 12 pending. |
 | **Client-Side Demo State & Persistence** | ✅ Complete | 100% | `localStorage` persistence with quota error handling, boot expiration purge, and read receipt simulation. |
 | **Backend & Real-Time Server** | ⏳ Future Phase | 0% | Planned for future development (WebSockets, Redis TTL, E2EE). |
 
@@ -108,19 +108,21 @@
 - [x] Ephemeral Empty State (*"All messages have vanished. Be present. Leave no history."*).
 - [x] Integrated `ChatInputBar` with photo attachment support.
 
-### [ ] Screen 8: Group Chat Room (`src/screens/08_GroupChatRoom.tsx`) — PENDING
-- [ ] Header:
-  - [ ] Back button to Home.
-  - [ ] Group Avatar (independent click opens Group Admin Profile).
-  - [ ] Group Name (*Late Night Crew 🌙*) + member count (`12 members`).
-  - [ ] Group Expiration Timer Badge (`30m`).
-  - [ ] Strictly zero voice/video calling icons.
-- [ ] Multi-user floating text stream:
-  - [ ] Color-differentiated sender labels (Meera, Kabir, Tanya, You).
-  - [ ] Real-time "First-seen, starts timer" group countdown badges.
-  - [ ] Particle disintegration animation when group messages expire.
-- [ ] Group message input composer.
-- [ ] Group members list slide-over / sheet.
+### [x] Screen 8: Group Chat Room (`src/features/chat/screens/08_GroupChatRoom.tsx`)
+- [x] Header:
+  - [x] Back button to Home.
+  - [x] Group Avatar (independent click opens Group Admin Profile).
+  - [x] Group Name (*Late Night Crew 🌙*) + member count (`12 members`).
+  - [x] Group Expiration Timer Badge (`30m`).
+  - [x] Strictly zero voice/video calling icons.
+- [x] Multi-user floating text stream:
+  - [x] Color-differentiated sender labels (Meera, Kabir, Tanya, You).
+  - [x] Real-time "First-seen, starts timer" group countdown badges.
+  - [x] Stable member IDs in data layer (`user-meera`, `user-kabir`, `user-tanya`, `user-me`) with UI display name mapping.
+  - [x] Particle disintegration animation when group messages expire.
+- [x] Group message input composer with 2 MB attachment validation.
+- [x] Group members list slide-over drawer with 12 members.
+- [x] Non-destructive LocalStorage migration from `ephemeral_messages_v1` to `ephemeral_demo_messages_v2`.
 
 ### [x] Screen 9: Message Timer Modal (`src/screens/09_MessageTimerModal.tsx`)
 - [x] Standalone and embedded modal sheet modes.
