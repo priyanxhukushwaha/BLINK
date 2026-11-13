@@ -1,5 +1,7 @@
 export * from './types/user';
 export * from './components/ProfileView';
-export * from './screens/05_MyProfile';
-export * from './screens/FriendProfileScreen';
-
+export * from './pages/MyProfileScreen';
+export * from './pages/FriendProfileScreen';
+export * from './services/user.service';
+export * from './hooks/useProfile';
+export * from './state/ProfileContext';
