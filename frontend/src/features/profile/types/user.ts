@@ -1,7 +1,7 @@
 export interface UserProfile {
   id: string;
-  username: string; // e.g. '@pkdev' or '@aryan'
-  displayName: string; // e.g. 'Priyanx Kushwaha' or 'Aryan'
+  username: string; // backend handle, already prefixed with '@'
+  displayName: string;
   bio: string;
   avatarUrl: string;
   defaultTimerMinutes?: number; // default expiration timer preference (1, 5, 15, 30, 60)

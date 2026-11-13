@@ -1,11 +1,11 @@
 import React from 'react';
 import { ProfileView } from '@/features/profile';
 import { useNavigation } from '@/shared';
-import { useChat } from '@/features/chat';
+import { useProfile } from '../hooks/useProfile';
 
-export const MyProfile: React.FC = () => {
+export const MyProfileScreen: React.FC = () => {
   const { goBack, navigateTo } = useNavigation();
-  const { currentUser } = useChat();
+  const { currentUser, logout } = useProfile();
 
   return (
     <ProfileView
@@ -15,8 +15,12 @@ export const MyProfile: React.FC = () => {
       onOpenSettings={() => navigateTo('settings')}
       onOpenInvite={() => navigateTo('invite-friends')}
       onOpenTimer={() => navigateTo('message-timer')}
-      onLogout={() => navigateTo('onboarding-intro')}
+      onLogout={() => {
+        void logout();
+      }}
     />
   );
 };
 
+export { MyProfileScreen as MyProfile };
+export default MyProfileScreen;
