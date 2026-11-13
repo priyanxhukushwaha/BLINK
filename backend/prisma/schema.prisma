@@ -1,0 +1,212 @@
+// BLINK (Ephemeral) — database schema
+//
+// Privacy invariants encoded here:
+//  * Messages are hard-deleted by the expiration job; no soft delete column exists.
+//  * `expiresAt` is pre-computed and indexed so purging is a cheap range scan.
+//  * Photos live outside the database; only an internal path is stored and the
+//    file is unlinked at the same moment the message row is deleted.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoomType {
+  PRIVATE
+  GROUP
+}
+
+enum MemberRole {
+  ADMIN
+  MEMBER
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  ROOM_INVITE
+  SYSTEM
+}
+
+model User {
+  id                  String   @id @default(uuid())
+  username            String   @unique // stored bare, e.g. "pkdev"; API exposes "@pkdev"
+  displayName         String
+  bio                 String   @default("")
+  avatarPath          String? // internal file name; API exposes an authenticated avatar URL
+  passwordHash        String
+  defaultTimerMinutes Int      @default(15)
+  inviteCode          String   @unique @default(uuid())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  sentMessages           Message[]       @relation("MessageSender")
+  roomMemberships        RoomMember[]
+  sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
+  friendsAsUser          Friendship[]    @relation("FriendshipUser")
+  friendsAsFriend        Friendship[]    @relation("FriendshipFriend")
+  notifications          Notification[]
+  refreshTokens          RefreshToken[]
+  messageReads           MessageRead[]
+  mediaUploads           MediaUpload[]
+
+  @@index([username])
+  @@index([inviteCode])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique // SHA-256 hash of the refresh JWT — never the raw token
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Room {
+  id           String   @id @default(uuid())
+  name         String
+  type         RoomType
+  avatarUrl    String? // optional https image URL for groups; private rooms derive the other member's avatar
+  timerMinutes Int      @default(15) // one of 1, 5, 15, 30, 60
+  adminId      String? // null for private chats
+  dmKey        String?  @unique // sorted "userA:userB" — guarantees one private room per pair
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  members      RoomMember[]
+  messages     Message[]
+  mediaUploads MediaUpload[]
+
+  @@index([type])
+}
+
+model RoomMember {
+  id       String     @id @default(uuid())
+  roomId   String
+  userId   String
+  joinedAt DateTime   @default(now())
+  role     MemberRole @default(MEMBER)
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId])
+  @@index([roomId])
+}
+
+model Message {
+  id              String    @id @default(uuid())
+  roomId          String
+  senderId        String
+  text            String    @default("")
+  photoPath       String? // internal upload file name, served through an authenticated route
+  photoMimeType   String?
+  sentAt          DateTime  @default(now())
+  firstReadAt     DateTime? // locked to the first recipient read, never overwritten
+  firstReadBy     String? // user id of the first reader
+  timerDurationMs Int
+  expiresAt       DateTime // min(sentAt + 60m, firstReadAt + timerDurationMs)
+  createdAt       DateTime  @default(now())
+
+  room   Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender User          @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  reads  MessageRead[]
+
+  @@index([roomId, sentAt])
+  @@index([expiresAt])
+  @@index([senderId])
+}
+
+model MessageRead {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
+}
+
+model FriendRequest {
+  id         String              @id @default(uuid())
+  senderId   String
+  receiverId String
+  status     FriendRequestStatus @default(PENDING)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  sender   User @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("FriendRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json? // ids only — never message content
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+}
+
+// Short-lived record of a photo uploaded in preparation for a message.
+// Consumed when the message is created; the cleanup job removes abandoned rows
+// and files. Nothing here survives longer than the attachment it becomes.
+model MediaUpload {
+  id        String   @id @default(uuid())
+  userId    String
+  roomId    String
+  filePath  String
+  mimeType  String
+  sizeBytes Int
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+}
