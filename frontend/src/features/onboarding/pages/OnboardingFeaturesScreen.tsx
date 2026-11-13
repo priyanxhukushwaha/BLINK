@@ -2,7 +2,7 @@ import React from 'react';
 import { Shield, Clock, Users } from 'lucide-react';
 import { StatusBar, GlassCard, GlowButton, useNavigation } from '@/shared';
 
-export const OnboardingFeatures: React.FC = () => {
+export const OnboardingFeaturesScreen: React.FC = () => {
   const { navigateTo } = useNavigation();
 
   const features = [
@@ -80,3 +80,7 @@ export const OnboardingFeatures: React.FC = () => {
     </div>
   );
 };
+
+export { OnboardingFeaturesScreen as OnboardingFeatures };
+export default OnboardingFeaturesScreen;
+

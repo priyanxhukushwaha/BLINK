@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowRight, Clock } from 'lucide-react';
 import { StatusBar, GlowButton, useNavigation } from '@/shared';
 
-export const OnboardingIntro: React.FC = () => {
+export const OnboardingIntroScreen: React.FC = () => {
   const { navigateTo } = useNavigation();
 
   return (
@@ -83,3 +83,7 @@ export const OnboardingIntro: React.FC = () => {
     </div>
   );
 };
+
+export { OnboardingIntroScreen as OnboardingIntro };
+export default OnboardingIntroScreen;
+
