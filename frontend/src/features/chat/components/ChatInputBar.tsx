@@ -1,33 +1,52 @@
-import React, { useState, useRef } from 'react';
-import { Send, Image, Plus, X, Sparkles, AlertCircle } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Send, Image, Plus, X, AlertCircle } from 'lucide-react';
 
 interface ChatInputBarProps {
-  onSendMessage: (text: string, photoUrl?: string) => void;
+  onSendMessage: (text: string, photo?: File) => void;
   disabled?: boolean;
 }
 
 const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB limit
 
-// Preset aesthetic demo photo for quick testing
-const DEMO_PHOTO_PRESET = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=80';
+interface SelectedPhoto {
+  file: File;
+  previewUrl: string;
+}
 
 export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   onSendMessage,
   disabled = false,
 }) => {
   const [text, setText] = useState('');
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedPhoto | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
+
+  const clearPhoto = () => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    setSelectedPhoto(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    };
+  }, []);
 
   const handleSend = () => {
     const trimmed = text.trim();
     if (!trimmed && !selectedPhoto) return;
 
-    onSendMessage(trimmed || 'Shared a moment', selectedPhoto || undefined);
+    onSendMessage(trimmed, selectedPhoto?.file);
     setText('');
-    setSelectedPhoto(null);
+    clearPhoto();
     setFileError(null);
     setShowAttachMenu(false);
   };
@@ -44,35 +63,31 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Safety Requirement: Accept image files only
     if (!file.type.startsWith('image/')) {
       setFileError('Invalid file type: Please select an image file (PNG, JPG, WebP).');
+      e.target.value = '';
       return;
     }
 
-    // Safety Requirement: 2 MB maximum size limit
     if (file.size > MAX_PHOTO_SIZE_BYTES) {
       setFileError(`File too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Limit is 2 MB.`);
+      e.target.value = '';
       return;
     }
 
-    // Read client-side data URL for local display
-    const reader = new FileReader();
-    reader.onload = () => {
-      setSelectedPhoto(reader.result as string);
-    };
-    reader.onerror = () => {
-      setFileError('Failed to read image file. Please try another image.');
-    };
-    reader.readAsDataURL(file);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+    }
+    const previewUrl = URL.createObjectURL(file);
+    previewUrlRef.current = previewUrl;
+    setSelectedPhoto({ file, previewUrl });
 
-    // Reset input
     e.target.value = '';
   };
 
   return (
     <div className="relative w-full px-4 pb-4 pt-1 z-30 pointer-events-auto">
-      {/* File / Storage Error Notification */}
+      {/* File Error Notification */}
       {fileError && (
         <div className="mb-2 p-2.5 rounded-2xl bg-rose-950/80 border border-rose-500/30 flex items-center justify-between text-xs text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-fade-in">
           <div className="flex items-center gap-2">
@@ -93,13 +108,13 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
       {selectedPhoto && (
         <div className="relative mb-2 inline-block rounded-2xl overflow-hidden border border-purple-400/40 shadow-[0_0_20px_rgba(168,85,247,0.35)] animate-fade-in">
           <img
-            src={selectedPhoto}
+            src={selectedPhoto.previewUrl}
             alt="Preview"
             className="w-20 h-20 object-cover"
           />
           <button
             type="button"
-            onClick={() => setSelectedPhoto(null)}
+            onClick={clearPhoto}
             className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white hover:bg-black"
           >
             <X className="w-3 h-3" />
@@ -120,17 +135,6 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           >
             <Image className="w-4 h-4 text-cyan-400" />
             <span>Upload Photo (&le; 2 MB)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedPhoto(DEMO_PHOTO_PRESET);
-              setShowAttachMenu(false);
-            }}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-purple-200 hover:text-white hover:bg-purple-900/40 transition-colors"
-          >
-            <Sparkles className="w-4 h-4 text-neon-purple" />
-            <span>Aesthetic Preset (Demo)</span>
           </button>
         </div>
       )}
@@ -194,4 +198,3 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
     </div>
   );
 };
-

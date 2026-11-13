@@ -1,47 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Clock, MoreVertical, Sparkles, AlertCircle, X, Users, Shield, UserCheck } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Clock, MoreVertical, Sparkles, AlertCircle, X, Users, Shield } from 'lucide-react';
 import { StatusBar, BackButton, NeonAvatar, GlassCard, useNavigation } from '@/shared';
-import { FloatingMessage, ChatInputBar, MessageTimerModal, useChat } from '@/features/chat';
+import { FloatingMessage, ChatInputBar, MessageTimerModal, useChatRoom } from '@/features/chat';
 
-export const GroupChatRoom: React.FC = () => {
+export const GroupChatScreen: React.FC = () => {
   const { goBack, navigateTo, activeRoomId } = useNavigation();
+
   const {
-    messages,
+    room,
+    messages: roomMessages,
+    members,
+    roomTimer,
+    currentUser,
+    resolveMemberName,
     sendMessage,
-    simulateGroupMemberRead,
-    markIncomingAsRead,
     evictExpiredMessage,
-    rooms,
     storageError,
     clearStorageError,
-  } = useChat();
+  } = useChatRoom(activeRoomId);
 
   const [showTimerModal, setShowTimerModal] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showMembersDrawer, setShowMembersDrawer] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Group room configuration
-  const currentRoomId = activeRoomId || 'room-late-night';
-  const room = rooms.find((r) => r.id === currentRoomId) || {
-    id: 'room-late-night',
-    name: 'Late Night Crew 🌙',
-    type: 'group' as const,
-    avatarUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=300&auto=format&fit=crop&q=80',
-    memberCount: 12,
-    members: ['Meera', 'Kabir', 'Tanya', 'Priyanx', 'Aryan', 'Rohan', 'Sneha', 'Zara', 'Dev', 'Aditi', 'Vikram', 'Ananya'],
-    adminId: 'user-meera',
-    adminName: 'Meera',
-    timerMinutes: 30,
-  };
-
-  const roomMessages = messages[currentRoomId] || [];
-  const roomTimer = room.timerMinutes || 30;
-
-  // On entry: mark incoming messages as read by current user
-  useEffect(() => {
-    markIncomingAsRead(currentRoomId);
-  }, [currentRoomId, markIncomingAsRead]);
+  const currentRoomId = activeRoomId ?? '';
+  const memberCount = room?.memberCount ?? members.length;
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -49,24 +33,17 @@ export const GroupChatRoom: React.FC = () => {
   }, [roomMessages.length]);
 
   const handleOpenAdminProfile = () => {
-    const adminId = room.adminId || 'user-meera';
-    navigateTo('friend-profile', { friendId: adminId });
+    if (!room?.adminId) return;
+    navigateTo('friend-profile', { friendId: room.adminId });
   };
 
-  const handleOpenMemberProfile = (senderIdOrName: string) => {
-    // Map member ID or name to friend ID
-    const friendIdMap: Record<string, string> = {
-      'user-meera': 'user-meera',
-      'user-kabir': 'user-kabir',
-      'user-tanya': 'user-tanya',
-      'user-aryan': 'user-aryan',
-      Meera: 'user-meera',
-      Kabir: 'user-kabir',
-      Tanya: 'user-tanya',
-      Aryan: 'user-aryan',
-    };
-    const targetId = friendIdMap[senderIdOrName] || 'user-meera';
-    navigateTo('friend-profile', { friendId: targetId });
+  const handleOpenMemberProfile = (memberId: string) => {
+    if (!memberId) return;
+    if (memberId === currentUser.id) {
+      navigateTo('my-profile');
+      return;
+    }
+    navigateTo('friend-profile', { friendId: memberId });
   };
 
   return (
@@ -80,7 +57,7 @@ export const GroupChatRoom: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <BackButton onClick={goBack} />
 
-            {/* Group Avatar: Independent click opens Group Admin Profile (Meera) */}
+            {/* Group Avatar: click opens the real Group Admin profile */}
             <div
               role="button"
               tabIndex={0}
@@ -88,16 +65,16 @@ export const GroupChatRoom: React.FC = () => {
                 e.stopPropagation();
                 handleOpenAdminProfile();
               }}
-              className="cursor-pointer group flex-shrink-0"
-              title={`View Group Admin Profile (${room.adminName || 'Meera'})`}
+              className={`${room?.adminId ? 'cursor-pointer group' : ''} flex-shrink-0`}
+              title={room?.adminName ? `View Group Admin Profile (${room.adminName})` : 'Group'}
             >
               <NeonAvatar
-                src={room.avatarUrl}
-                name={room.name}
+                src={room?.avatarUrl}
+                name={room?.name || 'Group'}
                 size="sm"
                 glow
                 glowColor="purple"
-                className="group-hover:scale-105 transition-transform"
+                className={room?.adminId ? 'group-hover:scale-105 transition-transform' : ''}
               />
             </div>
 
@@ -109,23 +86,24 @@ export const GroupChatRoom: React.FC = () => {
             >
               <div className="flex items-center gap-1.5">
                 <span className="text-sm font-bold text-white tracking-wide group-hover:text-purple-300 transition-colors">
-                  {room.name}
+                  {room?.name || 'Group'}
                 </span>
               </div>
               <div className="flex items-center gap-1 text-[10px] text-purple-300/60 font-mono -mt-0.5">
                 <Users className="w-2.5 h-2.5 text-purple-400" />
-                <span>{room.memberCount || 12} members (tap to view)</span>
+                <span>{memberCount} members (tap to view)</span>
               </div>
             </div>
           </div>
 
-          {/* Right Actions: Timer Pill + Options (NO CALL ICONS) */}
+          {/* Right Actions: Timer Pill + Options */}
           <div className="flex items-center gap-1.5">
             {/* Expiration Timer Pill */}
             <button
               type="button"
               onClick={() => setShowTimerModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-950/70 border border-purple-500/30 text-purple-200 hover:text-white hover:border-purple-400 transition-all text-xs font-mono shadow-[0_0_12px_rgba(168,85,247,0.25)]"
+              disabled={!room}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-950/70 border border-purple-500/30 text-purple-200 hover:text-white hover:border-purple-400 transition-all text-xs font-mono shadow-[0_0_12px_rgba(168,85,247,0.25)] disabled:opacity-40"
               title="Set group expiration timer"
             >
               <Clock className="w-3.5 h-3.5 text-neon-purple animate-pulse" />
@@ -156,19 +134,21 @@ export const GroupChatRoom: React.FC = () => {
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-purple-200 hover:text-white hover:bg-purple-900/40 text-left"
             >
               <Users className="w-3.5 h-3.5 text-purple-400" />
-              <span>Group Members (12)</span>
+              <span>Group Members ({memberCount})</span>
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowOptionsMenu(false);
-                handleOpenAdminProfile();
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-purple-200 hover:text-white hover:bg-purple-900/40 text-left"
-            >
-              <Shield className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Admin Profile ({room.adminName || 'Meera'})</span>
-            </button>
+            {room?.adminId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOptionsMenu(false);
+                  handleOpenAdminProfile();
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-purple-200 hover:text-white hover:bg-purple-900/40 text-left"
+              >
+                <Shield className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Admin Profile ({room.adminName || 'Admin'})</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -184,7 +164,7 @@ export const GroupChatRoom: React.FC = () => {
         )}
       </div>
 
-      {/* Storage Error Alert Banner */}
+      {/* Connection / API Error Alert Banner */}
       {storageError && (
         <div className="mx-4 mt-2 p-2.5 rounded-2xl bg-rose-950/80 border border-rose-500/30 flex items-center justify-between text-xs text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)] z-30 animate-fade-in">
           <div className="flex items-center gap-2">
@@ -210,11 +190,9 @@ export const GroupChatRoom: React.FC = () => {
               message={msg}
               showSender={true}
               isGroupChat={true}
-              onAvatarClick={() => handleOpenMemberProfile(msg.senderId || msg.senderName)}
-              onSimulateGroupRead={(messageId, memberId) =>
-                simulateGroupMemberRead(currentRoomId, messageId, memberId)
-              }
-              onExpire={(messageId) => evictExpiredMessage(currentRoomId, messageId)}
+              resolveMemberName={resolveMemberName}
+              onAvatarClick={() => handleOpenMemberProfile(msg.senderId)}
+              onExpire={(messageId) => evictExpiredMessage(messageId)}
             />
           ))
         ) : (
@@ -236,11 +214,14 @@ export const GroupChatRoom: React.FC = () => {
 
       {/* Chat Input Bar */}
       <ChatInputBar
-        onSendMessage={(text, photoUrl) => sendMessage(currentRoomId, text, photoUrl)}
+        disabled={!room}
+        onSendMessage={(text, photo) => {
+          void sendMessage(text, photo);
+        }}
       />
 
       {/* Modal: Message Timer Sheet */}
-      {showTimerModal && (
+      {showTimerModal && room && (
         <MessageTimerModal
           isModal
           onClose={() => setShowTimerModal(false)}
@@ -262,7 +243,7 @@ export const GroupChatRoom: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-neon-purple" />
                 <h3 className="text-sm font-bold text-white tracking-wide">
-                  Group Members ({room.memberCount || 12})
+                  Group Members ({memberCount})
                 </h3>
               </div>
               <button
@@ -276,35 +257,30 @@ export const GroupChatRoom: React.FC = () => {
 
             {/* Members List */}
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {(room.members || ['Meera', 'Kabir', 'Tanya', 'Priyanx']).map((member, idx) => {
-                const isAdmin = member === (room.adminName || 'Meera');
-                const isYou = member === 'Priyanx';
+              {members.map((member) => {
+                const isAdmin = member.role === 'ADMIN' || member.id === room?.adminId;
+                const isYou = member.id === currentUser.id;
                 return (
                   <GlassCard
-                    key={idx}
+                    key={member.id}
                     hoverEffect
                     onClick={() => {
                       setShowMembersDrawer(false);
-                      if (isAdmin) {
-                        handleOpenAdminProfile();
-                      } else if (!isYou) {
-                        handleOpenMemberProfile(member);
-                      } else {
-                        navigateTo('my-profile');
-                      }
+                      handleOpenMemberProfile(member.id);
                     }}
                     className="p-3 flex items-center justify-between cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
                       <NeonAvatar
-                        name={member}
+                        src={member.avatarUrl}
+                        name={member.displayName}
                         size="xs"
                         glow={isAdmin}
                         glowColor={isAdmin ? 'purple' : 'cyan'}
                       />
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-white">
-                          {member} {isYou && '(You)'}
+                          {member.displayName} {isYou && '(You)'}
                         </span>
                         {isAdmin && (
                           <span className="px-2 py-0.5 rounded-full text-[9px] font-mono text-purple-200 bg-purple-900/60 border border-purple-400/30">
@@ -326,3 +302,7 @@ export const GroupChatRoom: React.FC = () => {
     </div>
   );
 };
+
+export { GroupChatScreen as GroupChatRoom };
+export default GroupChatScreen;
+

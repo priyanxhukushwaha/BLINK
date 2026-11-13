@@ -21,17 +21,36 @@ export const MessageTimerModal: React.FC<MessageTimerModalProps> = ({
   isModal = false,
 }) => {
   const { goBack, activeRoomId } = useNavigation();
-  const { rooms, activeRoomTimer, setRoomTimer } = useChat();
+  const {
+    rooms,
+    activeRoomTimer,
+    currentUser,
+    setRoomTimer,
+    setDefaultTimer,
+  } = useChat();
 
-  const currentRoom = rooms.find((r) => r.id === activeRoomId);
-  const currentDuration = currentRoom?.timerMinutes || activeRoomTimer || 5;
+  const currentRoom = activeRoomId
+    ? rooms.find((room) => room.id === activeRoomId)
+    : undefined;
+
+  // The modal is only opened from a chat room. The standalone screen is opened
+  // from the profile, where it edits the account default instead.
+  const isRoomContext = isModal && Boolean(currentRoom);
+
+  const fallbackDefault = (currentUser.defaultTimerMinutes ?? 15) as TimerOptionMinutes;
+  const currentDuration = isRoomContext
+    ? currentRoom?.timerMinutes ?? activeRoomTimer
+    : fallbackDefault;
 
   const [selectedMinutes, setSelectedMinutes] = useState<TimerOptionMinutes>(currentDuration);
 
-  const handleSetTimer = () => {
-    if (activeRoomId) {
-      setRoomTimer(activeRoomId, selectedMinutes);
+  const handleSetTimer = async () => {
+    if (isRoomContext && activeRoomId) {
+      await setRoomTimer(activeRoomId, selectedMinutes);
+    } else {
+      await setDefaultTimer(selectedMinutes);
     }
+
     if (onClose) {
       onClose();
     } else {
@@ -69,7 +88,9 @@ export const MessageTimerModal: React.FC<MessageTimerModalProps> = ({
             Message Timer
           </h1>
           <p className="text-xs text-purple-200/70 mt-1.5 max-w-xs mx-auto leading-relaxed">
-            Timer starts once the recipient reads the message. Messages strictly expire after this duration (or 60 minutes if unread).
+            {isRoomContext
+              ? 'Timer starts once the recipient reads the message. Messages strictly expire after this duration (or 60 minutes if unread).'
+              : 'This is the default timer for new conversations. Messages still disappear after this duration, capped at 60 minutes.'}
           </p>
         </div>
 
@@ -114,7 +135,13 @@ export const MessageTimerModal: React.FC<MessageTimerModalProps> = ({
 
       {/* Action Button */}
       <div className="pt-2 pb-4">
-        <GlowButton fullWidth size="lg" onClick={handleSetTimer}>
+        <GlowButton
+          fullWidth
+          size="lg"
+          onClick={() => {
+            void handleSetTimer();
+          }}
+        >
           Set Timer ({selectedMinutes}m)
         </GlowButton>
       </div>
@@ -139,4 +166,3 @@ export const MessageTimerModal: React.FC<MessageTimerModalProps> = ({
 
   return content;
 };
-

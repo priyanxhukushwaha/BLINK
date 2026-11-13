@@ -1,45 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Clock, MoreVertical, Sparkles, AlertCircle, X, Shield } from 'lucide-react';
 import { StatusBar, BackButton, NeonAvatar, useNavigation } from '@/shared';
-import { FloatingMessage, ChatInputBar, MessageTimerModal, useChat } from '@/features/chat';
+import { FloatingMessage, ChatInputBar, MessageTimerModal, useChat, useChatRoom } from '@/features/chat';
 
-export const PrivateChatRoom: React.FC = () => {
+export const PrivateChatScreen: React.FC = () => {
   const { goBack, navigateTo, activeRoomId, selectedFriendId } = useNavigation();
+  const { getFriendById, profileCache } = useChat();
+
   const {
-    messages,
+    room,
+    messages: roomMessages,
+    roomTimer,
+    resolveMemberName,
     sendMessage,
-    simulateRecipientRead,
-    markIncomingAsRead,
     evictExpiredMessage,
-    getFriendById,
-    rooms,
     storageError,
     clearStorageError,
-  } = useChat();
+  } = useChatRoom(activeRoomId);
 
   const [showTimerModal, setShowTimerModal] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Determine current active room & friend
-  const currentRoomId = activeRoomId || 'room-aryan';
-  const targetFriendId = selectedFriendId || 'user-aryan';
-  const friend = getFriendById(targetFriendId) || {
-    id: 'user-aryan',
-    username: '@aryan',
-    displayName: 'Aryan',
-    bio: 'Living in the moment. Leaving no digital footprints. 🌌',
-    avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80',
-  };
+  const currentRoomId = activeRoomId ?? '';
+  const friendId = room?.recipientId ?? selectedFriendId;
+  const friend = friendId ? getFriendById(friendId) : undefined;
+  const memberProfile = room?.memberProfiles?.find((member) => member.id === friendId);
+  const cachedProfile = friendId ? profileCache[friendId] : undefined;
 
-  const room = rooms.find((r) => r.id === currentRoomId);
-  const roomMessages = messages[currentRoomId] || [];
-  const roomTimer = room?.timerMinutes || 5;
-
-  // On entry: mark incoming messages as read (starts recipient's countdown)
-  useEffect(() => {
-    markIncomingAsRead(currentRoomId);
-  }, [currentRoomId, markIncomingAsRead]);
+  const recipient = friend ?? memberProfile ?? cachedProfile;
+  const recipientName = room?.name || recipient?.displayName || 'Conversation';
+  const recipientAvatar = room?.avatarUrl || recipient?.avatarUrl;
 
   // Smooth auto-scroll to latest message
   useEffect(() => {
@@ -47,7 +38,8 @@ export const PrivateChatRoom: React.FC = () => {
   }, [roomMessages.length]);
 
   const handleOpenProfile = () => {
-    navigateTo('friend-profile', { friendId: friend.id });
+    if (!friendId) return;
+    navigateTo('friend-profile', { friendId });
   };
 
   return (
@@ -64,35 +56,36 @@ export const PrivateChatRoom: React.FC = () => {
             {/* Recipient Profile Trigger */}
             <div
               onClick={handleOpenProfile}
-              className="flex items-center gap-2.5 cursor-pointer group"
-              title="View friend profile"
+              className={`flex items-center gap-2.5 ${friendId ? 'cursor-pointer group' : ''}`}
+              title={friendId ? 'View friend profile' : recipientName}
             >
               <NeonAvatar
-                src={friend.avatarUrl}
-                name={friend.displayName}
+                src={recipientAvatar}
+                name={recipientName}
                 size="sm"
                 glow
                 glowColor="purple"
-                className="group-hover:scale-105 transition-transform"
+                className={friendId ? 'group-hover:scale-105 transition-transform' : ''}
               />
               <div className="flex flex-col">
                 <span className="text-sm font-bold text-white tracking-wide group-hover:text-purple-300 transition-colors">
-                  {friend.displayName}
+                  {recipientName}
                 </span>
                 <span className="text-[10px] text-purple-300/60 font-mono -mt-0.5">
-                  Tap for profile
+                  {friendId ? 'Tap for profile' : 'Private chat'}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Right Actions: Message Timer Pill + Options (NO CALL ICONS) */}
+          {/* Right Actions: Message Timer Pill + Options */}
           <div className="flex items-center gap-1.5">
             {/* Expiration Timer Pill */}
             <button
               type="button"
               onClick={() => setShowTimerModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-950/70 border border-purple-500/30 text-purple-200 hover:text-white hover:border-purple-400 transition-all text-xs font-mono shadow-[0_0_12px_rgba(168,85,247,0.25)]"
+              disabled={!room}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-950/70 border border-purple-500/30 text-purple-200 hover:text-white hover:border-purple-400 transition-all text-xs font-mono shadow-[0_0_12px_rgba(168,85,247,0.25)] disabled:opacity-40"
               title="Set expiration timer"
             >
               <Clock className="w-3.5 h-3.5 text-neon-purple animate-pulse" />
@@ -114,17 +107,19 @@ export const PrivateChatRoom: React.FC = () => {
         {/* Options Dropdown */}
         {showOptionsMenu && (
           <div className="absolute top-20 right-4 z-40 p-2 rounded-2xl bg-[#14062a]/95 backdrop-blur-2xl border border-purple-500/30 shadow-[0_0_30px_rgba(0,0,0,0.8)] flex flex-col gap-1 min-w-[170px] animate-fade-in">
-            <button
-              type="button"
-              onClick={() => {
-                setShowOptionsMenu(false);
-                handleOpenProfile();
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-purple-200 hover:text-white hover:bg-purple-900/40 text-left"
-            >
-              <Shield className="w-3.5 h-3.5 text-purple-400" />
-              <span>View Profile</span>
-            </button>
+            {friendId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOptionsMenu(false);
+                  handleOpenProfile();
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-purple-200 hover:text-white hover:bg-purple-900/40 text-left"
+              >
+                <Shield className="w-3.5 h-3.5 text-purple-400" />
+                <span>View Profile</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -140,7 +135,7 @@ export const PrivateChatRoom: React.FC = () => {
         )}
       </div>
 
-      {/* Storage Error Alert Banner */}
+      {/* Connection / API Error Alert Banner */}
       {storageError && (
         <div className="mx-4 mt-2 p-2.5 rounded-2xl bg-rose-950/80 border border-rose-500/30 flex items-center justify-between text-xs text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)] z-30 animate-fade-in">
           <div className="flex items-center gap-2">
@@ -165,9 +160,9 @@ export const PrivateChatRoom: React.FC = () => {
               key={msg.id}
               message={msg}
               showSender={false}
+              resolveMemberName={resolveMemberName}
               onAvatarClick={handleOpenProfile}
-              onSimulateRead={(messageId) => simulateRecipientRead(currentRoomId, messageId)}
-              onExpire={(messageId) => evictExpiredMessage(currentRoomId, messageId)}
+              onExpire={(messageId) => evictExpiredMessage(messageId)}
             />
           ))
         ) : (
@@ -189,11 +184,14 @@ export const PrivateChatRoom: React.FC = () => {
 
       {/* Chat Input Bar */}
       <ChatInputBar
-        onSendMessage={(text, photoUrl) => sendMessage(currentRoomId, text, photoUrl)}
+        disabled={!room}
+        onSendMessage={(text, photo) => {
+          void sendMessage(text, photo);
+        }}
       />
 
       {/* Modal: Message Timer Sheet */}
-      {showTimerModal && (
+      {showTimerModal && room && (
         <MessageTimerModal
           isModal
           onClose={() => setShowTimerModal(false)}
@@ -202,4 +200,7 @@ export const PrivateChatRoom: React.FC = () => {
     </div>
   );
 };
+
+export { PrivateChatScreen as PrivateChatRoom };
+export default PrivateChatScreen;
 
