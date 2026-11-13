@@ -1,0 +1,11 @@
+/* BLINK (EPHEMERAL) — App Layer Styles */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #040208;
+  color: #ffffff;
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+}
