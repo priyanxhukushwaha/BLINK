@@ -10,8 +10,8 @@ export * from './components/AmbientGlowBackground';
 export * from './layout/BottomNav';
 export * from './layout/ResponsiveContainer';
 
-// Shared Context & Hooks
-export * from './context/NavigationContext';
+// Shared State & Hooks
+export * from './state/NavigationContext';
 
 // Shared Types
 export * from './types/navigation';

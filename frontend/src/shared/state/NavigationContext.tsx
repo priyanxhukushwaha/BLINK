@@ -3,6 +3,7 @@ import { ScreenId, BottomNavTab, NavigationState } from '@/shared/types/navigati
 
 interface NavigationContextType extends NavigationState {
   navigateTo: (screen: ScreenId, params?: { roomId?: string; friendId?: string }) => void;
+  resetTo: (screen: ScreenId) => void;
   goBack: () => void;
   setActiveNavTab: (tab: BottomNavTab) => void;
   toggleDevMode: () => void;
@@ -13,8 +14,8 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [history, setHistory] = useState<ScreenId[]>(['splash']);
   const [currentScreen, setCurrentScreen] = useState<ScreenId>('splash');
-  const [activeRoomId, setActiveRoomId] = useState<string | undefined>('room-late-night');
-  const [selectedFriendId, setSelectedFriendId] = useState<string | undefined>('user-aryan');
+  const [activeRoomId, setActiveRoomId] = useState<string | undefined>(undefined);
+  const [selectedFriendId, setSelectedFriendId] = useState<string | undefined>(undefined);
   const [activeNavTab, setActiveNavTab] = useState<BottomNavTab>('home');
   const [isDevMode, setIsDevMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -47,6 +48,11 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setCurrentScreen(screen);
   };
 
+  const resetTo = (screen: ScreenId) => {
+    setHistory([screen]);
+    setCurrentScreen(screen);
+  };
+
   const goBack = () => {
     if (history.length > 1) {
       const newHistory = [...history];
@@ -72,6 +78,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         activeNavTab,
         isDevMode,
         navigateTo,
+        resetTo,
         goBack,
         setActiveNavTab,
         toggleDevMode,
