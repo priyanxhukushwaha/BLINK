@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Search, Bell, Clock, Users, X, MessageSquare, Plus, UserPlus, Sparkles, MessageCircle } from 'lucide-react';
 import { StatusBar, NeonAvatar, BottomNav, GlassCard, useNavigation } from '@/shared';
-import { useChat } from '@/features/chat';
+import { useChat, ConversationRoom } from '@/features/chat';
 
-export const HomeRooms: React.FC = () => {
+export const HomeScreen: React.FC = () => {
   const { navigateTo, activeNavTab, setActiveNavTab } = useNavigation();
-  const { rooms, friends } = useChat();
+  const { rooms, friends, ensurePrivateRoom } = useChat();
 
   const [activeTab, setActiveTab] = useState<'rooms' | 'friends'>('rooms');
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,6 +22,31 @@ export const HomeRooms: React.FC = () => {
       f.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       f.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const openPrivateChat = async (friendId: string) => {
+    const roomId = await ensurePrivateRoom(friendId);
+    if (roomId) {
+      navigateTo('private-chat', { friendId, roomId });
+    }
+  };
+
+  const openRoom = (room: ConversationRoom) => {
+    if (room.type === 'private') {
+      navigateTo('private-chat', {
+        roomId: room.id,
+        friendId: room.recipientId,
+      });
+    } else {
+      navigateTo('group-chat', { roomId: room.id });
+    }
+  };
+
+  const openRoomOwnerProfile = (room: ConversationRoom) => {
+    const targetId = room.type === 'private' ? room.recipientId : room.adminId;
+    if (targetId) {
+      navigateTo('friend-profile', { friendId: targetId });
+    }
+  };
 
   return (
     <div className="relative flex-1 flex flex-col justify-between select-none">
@@ -134,34 +159,36 @@ export const HomeRooms: React.FC = () => {
       <div className="flex-1 px-5 py-3 overflow-y-auto space-y-2">
         {activeTab === 'rooms' ? (
           // ROOMS TAB:
-          // Clicking group picture opens the Group Admin's profile (Screen 5)
-          // Clicking group name / row opens Group Chat Room (Screen 8)
+          // Clicking an avatar opens the chat partner/admin profile.
+          // Clicking the row opens the matching chat room.
           filteredRooms.length > 0 ? (
             filteredRooms.map((room) => (
               <div
                 key={room.id}
-                onClick={() => navigateTo('group-chat', { roomId: room.id })}
+                onClick={() => openRoom(room)}
                 className="group flex items-center justify-between py-3.5 px-3 rounded-2xl hover:bg-white/[0.04] transition-all duration-200 cursor-pointer"
               >
-                {/* Left: Group Avatar (Independent Click -> Opens Group Admin's Profile) */}
+                {/* Left: Avatar */}
                 <div className="flex items-center gap-3.5">
                   <div
                     role="button"
                     tabIndex={0}
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevents navigating to group chat room
-                      const adminFriendId = room.adminId || 'user-meera';
-                      navigateTo('friend-profile', { friendId: adminFriendId });
+                      e.stopPropagation();
+                      openRoomOwnerProfile(room);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.stopPropagation();
-                        const adminFriendId = room.adminId || 'user-meera';
-                        navigateTo('friend-profile', { friendId: adminFriendId });
+                        openRoomOwnerProfile(room);
                       }
                     }}
                     className="group/avatar relative cursor-pointer focus:outline-none flex-shrink-0"
-                    title={`View Group Admin Profile (${room.adminName || 'Admin'})`}
+                    title={
+                      room.type === 'private'
+                        ? `View ${room.name}'s profile`
+                        : `View Group Admin Profile (${room.adminName || 'Admin'})`
+                    }
                   >
                     <NeonAvatar
                       src={room.avatarUrl}
@@ -173,16 +200,18 @@ export const HomeRooms: React.FC = () => {
                     />
                   </div>
 
-                  {/* Room Name + Members + Message Preview (Click -> Opens Group Chat) */}
+                  {/* Room Name + Members + Message Preview */}
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-white tracking-wide group-hover:text-purple-200 transition-colors">
                         {room.name}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-purple-300/60 bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-500/15">
-                        <Users className="w-2.5 h-2.5 text-purple-400 stroke-[2.5]" />
-                        {room.memberCount}
-                      </span>
+                      {room.type === 'group' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-purple-300/60 bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-500/15">
+                          <Users className="w-2.5 h-2.5 text-purple-400 stroke-[2.5]" />
+                          {room.memberCount}
+                        </span>
+                      )}
                     </div>
                     <span className="text-xs text-purple-200/60 mt-0.5 truncate max-w-[210px]">
                       {room.lastMessageText}
@@ -199,20 +228,19 @@ export const HomeRooms: React.FC = () => {
             ))
           ) : (
             <div className="py-12 text-center text-xs text-purple-300/50">
-              No rooms matching "{searchQuery}"
+              {searchQuery ? `No rooms matching "${searchQuery}"` : 'No conversations yet'}
             </div>
           )
         ) : (
           // FRIENDS TAB:
-          // 1. Friend's profile picture independent click -> opens Friend Profile (Screen 5)
-          // 2. Friend's username & name click -> directly opens Private Chat Room (Screen 7)
+          // Avatar opens the friend profile; name/row opens the private chat.
           filteredFriends.length > 0 ? (
             filteredFriends.map((friend) => (
               <div
                 key={friend.id}
                 className="relative flex items-center justify-between py-3.5 px-3 rounded-2xl hover:bg-white/[0.03] transition-colors duration-200"
               >
-                {/* Area 1: Independent Profile Picture Click -> Opens Friend Profile */}
+                {/* Area 1: Profile Picture -> Friend Profile */}
                 <div
                   role="button"
                   tabIndex={0}
@@ -239,22 +267,16 @@ export const HomeRooms: React.FC = () => {
                   />
                 </div>
 
-                {/* Area 2: Independent Username & Name Click -> Opens Private Chat Room */}
+                {/* Area 2: Username & Name -> Private Chat */}
                 <div
                   role="button"
                   tabIndex={0}
                   onClick={() => {
-                    navigateTo('private-chat', {
-                      friendId: friend.id,
-                      roomId: `room-${friend.displayName.toLowerCase()}`,
-                    });
+                    void openPrivateChat(friend.id);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
-                      navigateTo('private-chat', {
-                        friendId: friend.id,
-                        roomId: `room-${friend.displayName.toLowerCase()}`,
-                      });
+                      void openPrivateChat(friend.id);
                     }
                   }}
                   className="flex-1 ml-4 cursor-pointer focus:outline-none group/info"
@@ -267,20 +289,22 @@ export const HomeRooms: React.FC = () => {
                     <span className="text-[11px] font-mono text-purple-300/50">
                       {friend.username}
                     </span>
+                    {(friend.unreadCount ?? 0) > 0 && (
+                      <span className="min-w-[16px] h-4 px-1 rounded-full bg-neon-purple text-[9px] font-bold text-white flex items-center justify-center shadow-[0_0_8px_#A855F7]">
+                        {friend.unreadCount}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-purple-200/50 mt-0.5 tracking-tight">
                     {friend.lastInteractionText || 'Tap to chat'}
                   </p>
                 </div>
 
-                {/* Area 3: Right quick-action button -> Opens Private Chat Room */}
+                {/* Area 3: Right quick-action -> Private Chat */}
                 <button
                   type="button"
                   onClick={() => {
-                    navigateTo('private-chat', {
-                      friendId: friend.id,
-                      roomId: `room-${friend.displayName.toLowerCase()}`,
-                    });
+                    void openPrivateChat(friend.id);
                   }}
                   className="p-2 rounded-full text-purple-300/40 hover:text-white hover:bg-purple-900/30 transition-all duration-200"
                   title="Start temporary chat"
@@ -291,7 +315,7 @@ export const HomeRooms: React.FC = () => {
             ))
           ) : (
             <div className="py-12 text-center text-xs text-purple-300/50">
-              No friends matching "{searchQuery}"
+              {searchQuery ? `No friends matching "${searchQuery}"` : 'No friends yet'}
             </div>
           )
         )}
@@ -329,10 +353,7 @@ export const HomeRooms: React.FC = () => {
               hoverEffect
               onClick={() => {
                 setShowActionMenu(false);
-                navigateTo('private-chat', {
-                  friendId: 'user-aryan',
-                  roomId: 'room-aryan',
-                });
+                setActiveTab('friends');
               }}
               className="p-3.5 flex items-center gap-3 cursor-pointer"
             >
@@ -342,17 +363,22 @@ export const HomeRooms: React.FC = () => {
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-white">Start Private Chat</span>
                 <span className="text-[11px] text-purple-300/60">
-                  Direct floating conversation with a friend
+                  Pick a friend for a direct floating conversation
                 </span>
               </div>
             </GlassCard>
 
-            {/* Action 2: Create Group Room */}
+            {/* Action 2: Open Group Room */}
             <GlassCard
               hoverEffect
               onClick={() => {
                 setShowActionMenu(false);
-                navigateTo('group-chat', { roomId: 'room-late-night' });
+                const group = rooms.find((room) => room.type === 'group');
+                if (group) {
+                  navigateTo('group-chat', { roomId: group.id });
+                } else {
+                  setActiveTab('rooms');
+                }
               }}
               className="p-3.5 flex items-center gap-3 cursor-pointer"
             >
@@ -360,9 +386,9 @@ export const HomeRooms: React.FC = () => {
                 <Users className="w-5 h-5 stroke-[2.2]" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-semibold text-white">Create Group Room</span>
+                <span className="text-xs font-semibold text-white">Group Rooms</span>
                 <span className="text-[11px] text-purple-300/60">
-                  Multi-member room with first-seen expiration
+                  Multi-member rooms with first-seen expiration
                 </span>
               </div>
             </GlassCard>
@@ -405,3 +431,7 @@ export const HomeRooms: React.FC = () => {
     </div>
   );
 };
+
+export { HomeScreen as HomeRooms };
+export default HomeScreen;
+
