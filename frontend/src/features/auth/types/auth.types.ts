@@ -8,6 +8,9 @@ export interface AuthContextType {
   authError: string | null;
   isAuthenticating: boolean;
   currentUser: UserProfile;
+  isDemoMode: boolean;
+  enterDemoMode: () => void;
+  exitDemoMode: () => void;
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, displayName: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;

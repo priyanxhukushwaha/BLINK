@@ -10,7 +10,7 @@ const inputClass =
 
 export const AuthScreen: React.FC = () => {
   const { resetTo } = useNavigation();
-  const { login, register, authError, isAuthenticating, clearAuthError } = useAuth();
+  const { login, register, authError, isAuthenticating, clearAuthError, enterDemoMode } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>('login');
   const [username, setUsername] = useState('');
@@ -211,6 +211,26 @@ export const AuthScreen: React.FC = () => {
           {mode === 'login' ? 'Register' : 'Sign In'}
         </button>
       </div>
+
+      {/* Development Demo Mode Option (Stripped/absent in production) */}
+      {import.meta.env.DEV && (
+        <div className="pt-4 pb-2 border-t border-purple-500/15 mt-3 text-center animate-fade-in">
+          <button
+            type="button"
+            onClick={() => {
+              enterDemoMode();
+              resetTo('home-rooms');
+            }}
+            className="w-full py-2.5 px-4 rounded-2xl bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/30 hover:border-purple-400/60 text-purple-200 hover:text-white text-xs font-mono tracking-wide transition-all shadow-[0_0_15px_rgba(168,85,247,0.15)] flex items-center justify-center gap-2 group"
+          >
+            <span className="w-2 h-2 rounded-full bg-cyan-400 group-hover:scale-125 transition-transform shadow-[0_0_8px_#22d3ee]" />
+            <span>⚡ Enter Demo Mode (Local Simulation)</span>
+          </button>
+          <p className="text-[10px] text-purple-400/50 mt-1.5 font-mono">
+            Dev only · Offline test with seed data
+          </p>
+        </div>
+      )}
     </div>
   );
 };
