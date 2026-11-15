@@ -25,6 +25,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const isSubmittingRef = useRef(false);
 
   const clearPhoto = () => {
     if (previewUrlRef.current) {
@@ -43,18 +44,26 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   }, []);
 
   const handleSend = () => {
+    if (isSubmittingRef.current) return;
     const trimmed = text.trim();
     if (!trimmed && !selectedPhoto) return;
 
+    isSubmittingRef.current = true;
     onSendMessage(trimmed, selectedPhoto?.file);
     setText('');
     clearPhoto();
     setFileError(null);
     setShowAttachMenu(false);
+
+    // Release lock on the next tick after state batching settles
+    setTimeout(() => {
+      isSubmittingRef.current = false;
+    }, 150);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.repeat || e.nativeEvent.isComposing) return;
       e.preventDefault();
       handleSend();
     }

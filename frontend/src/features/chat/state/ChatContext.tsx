@@ -713,40 +713,49 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   }, []);
 
-  const upsertMessage = useCallback((message: Message) => {
-    setMessages((prev) => {
-      const current = prev[message.roomId] ?? [];
-      const index = current.findIndex((item) => item.id === message.id);
-      if (index === -1) {
-        return { ...prev, [message.roomId]: sortMessages([...current, message]) };
-      }
+  const upsertMessage = useCallback(
+    (message: Message) => {
+      setMessages((prev) => {
+        const current = prev[message.roomId] ?? [];
+        const index = current.findIndex((item) => item.id === message.id);
+        let next: Record<string, Message[]>;
+        if (index === -1) {
+          next = { ...prev, [message.roomId]: sortMessages([...current, message]) };
+        } else {
+          const existing = current[index];
+          const nextList = [...current];
+          nextList[index] = {
+            ...existing,
+            ...message,
+            photoUrl: message.photoUrl ?? existing.photoUrl,
+            photoPath: message.photoPath ?? existing.photoPath,
+          };
+          next = { ...prev, [message.roomId]: nextList };
+        }
 
-      const existing = current[index];
-      const next = [...current];
-      next[index] = {
-        ...existing,
-        ...message,
-        photoUrl: message.photoUrl ?? existing.photoUrl,
-        photoPath: message.photoPath ?? existing.photoPath,
-      };
-      return { ...prev, [message.roomId]: next };
-    });
+        if (isDemoMode) {
+          safeSaveToLocalStorage(next);
+        }
+        return next;
+      });
 
-    setRooms((prev) =>
-      prev.map((room) =>
-        room.id === message.roomId
-          ? {
-              ...room,
-              lastMessageText: message.photoUrl ? '📷 Photo' : message.text || room.lastMessageText,
-              unreadCount:
-                message.isOutgoing || activeRoomIdRef.current === message.roomId
-                  ? room.unreadCount
-                  : (room.unreadCount ?? 0) + 1,
-            }
-          : room
-      )
-    );
-  }, []);
+      setRooms((prev) =>
+        prev.map((room) =>
+          room.id === message.roomId
+            ? {
+                ...room,
+                lastMessageText: message.photoUrl ? '📷 Photo' : message.text || room.lastMessageText,
+                unreadCount:
+                  message.isOutgoing || activeRoomIdRef.current === message.roomId
+                    ? room.unreadCount
+                    : (room.unreadCount ?? 0) + 1,
+              }
+            : room
+        )
+      );
+    },
+    [isDemoMode]
+  );
 
   const applyRoomDetail = useCallback((detail: RoomDetailDto) => {
     const room = mapRoom(detail.room);
@@ -1532,12 +1541,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         upsertMessage(newMsg);
-
-        setMessages((prev) => {
-          const next = { ...prev, [roomId]: [...(prev[roomId] ?? []), newMsg] };
-          safeSaveToLocalStorage(next);
-          return next;
-        });
 
         // In 1-on-1 private chat with Aryan, simulate Aryan reading it after 2.5s
         if (roomId === 'room-aryan') {
