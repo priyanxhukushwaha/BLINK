@@ -67,10 +67,10 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 4, scale: 0.96 }}
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className={`px-4 pb-1 flex items-center pointer-events-none select-none z-20 ${className}`}
+          className={`px-5 pb-1 flex items-center pointer-events-none select-none z-20 ${className}`}
         >
-          {/* Bubble-less floating badge with ambient purple glow */}
-          <div className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-950/50 via-purple-900/30 to-indigo-950/20 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.18)] backdrop-blur-md">
+          {/* Pure floating text & animated dots: zero border, zero box container */}
+          <div className="inline-flex items-center gap-2">
             {/* Animated Pulsing & Bouncing Neon Dots */}
             <div className="flex items-center gap-1">
               <motion.span
@@ -105,8 +105,8 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
               />
             </div>
 
-            {/* Floating typography with subtle glow */}
-            <span className="text-xs font-medium text-purple-200 tracking-wide text-shadow-floating drop-shadow-[0_0_8px_rgba(192,132,252,0.4)]">
+            {/* Floating typography without container boundaries */}
+            <span className="text-xs font-medium text-purple-200/90 tracking-wide">
               {text}
             </span>
           </div>
