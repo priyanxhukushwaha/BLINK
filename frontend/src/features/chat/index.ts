@@ -5,6 +5,7 @@ export * from './utils/memberUtils';
 export * from './components/ParticleDisintegration';
 export * from './components/FloatingMessage';
 export * from './components/ChatInputBar';
+export * from './components/TypingIndicator';
 export * from './components/MessageTimerModal';
 export * from './services/message.service';
 export * from './hooks/useChatRoom';

@@ -3,6 +3,7 @@ import { Send, Image, Plus, X, AlertCircle } from 'lucide-react';
 
 interface ChatInputBarProps {
   onSendMessage: (text: string, photo?: File) => void;
+  onTyping?: () => void;
   disabled?: boolean;
 }
 
@@ -15,6 +16,7 @@ interface SelectedPhoto {
 
 export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   onSendMessage,
+  onTyping,
   disabled = false,
 }) => {
   const [text, setText] = useState('');
@@ -165,7 +167,12 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           <input
             type="text"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              if (e.target.value.trim()) {
+                onTyping?.();
+              }
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             disabled={disabled}

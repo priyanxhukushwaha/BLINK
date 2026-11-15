@@ -31,10 +31,17 @@ import type {
   RoomDto,
 } from '@/shared/api/types';
 import { calculateExpirationTime, isMessageExpired } from '../utils/expiration';
-import { normalizeMemberId } from '../utils/memberUtils';
+import { normalizeMemberId, KNOWN_MEMBER_NAMES } from '../utils/memberUtils';
 import { useAuth, DEMO_USER } from '@/features/auth';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
+
+export interface TypingUser {
+  userId: string;
+  username: string;
+  displayName: string;
+  lastTypedAt: number;
+}
 
 export interface ChatContextType {
   authStatus: AuthStatus;
@@ -59,6 +66,9 @@ export interface ChatContextType {
   ensurePrivateRoom: (friendId: string) => Promise<string | null>;
   getProfile: (userId: string) => Promise<UserProfile | null>;
   sendMessage: (roomId: string, text: string, photo?: File) => Promise<boolean>;
+  typingUsers: Record<string, TypingUser[]>;
+  sendTyping: (roomId: string) => void;
+  simulatePartnerTyping?: (roomId: string, user?: { userId: string; username: string; displayName?: string }) => void;
   simulateRecipientRead?: (roomId: string, messageId: string) => void;
   simulateGroupMemberRead?: (roomId: string, messageId: string, memberId: string) => void;
   markIncomingAsRead: (roomId: string) => void;
@@ -640,15 +650,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profileCache, setProfileCache] = useState<Record<string, UserProfile>>({});
   const [activeRoomTimer, setActiveRoomTimer] = useState<TimerOptionMinutes>(15);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Record<string, TypingUser[]>>({});
 
   const socketRef = useRef<ChatSocket | null>(null);
   const currentUserRef = useRef<UserProfile>(EMPTY_USER);
   const friendsRef = useRef<Friend[]>([]);
   const roomsRef = useRef<ConversationRoom[]>([]);
+  const roomMembersRef = useRef<Record<string, RoomMemberProfile[]>>({});
   const profileCacheRef = useRef<Record<string, UserProfile>>({});
   const activeRoomIdRef = useRef<string | null>(null);
   const objectUrlsRef = useRef<Set<string>>(new Set());
   const photoUrlCacheRef = useRef<Map<string, string>>(new Map());
+  const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const lastSentTypingRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     currentUserRef.current = currentUser;
@@ -661,6 +675,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     roomsRef.current = rooms;
   }, [rooms]);
+
+  useEffect(() => {
+    roomMembersRef.current = roomMembers;
+  }, [roomMembers]);
 
   useEffect(() => {
     profileCacheRef.current = profileCache;
@@ -856,8 +874,149 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [isDemoMode]
   );
 
+  const clearTypingTimeout = useCallback((roomId: string, userId: string) => {
+    const key = `${roomId}:${userId}`;
+    const timeoutId = typingTimeoutsRef.current.get(key);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      typingTimeoutsRef.current.delete(key);
+    }
+  }, []);
+
+  const removeTypingUser = useCallback(
+    (roomId: string, userId: string) => {
+      clearTypingTimeout(roomId, userId);
+      setTypingUsers((prev) => {
+        const list = prev[roomId];
+        if (!list || !list.some((u) => u.userId === userId)) return prev;
+        const nextList = list.filter((u) => u.userId !== userId);
+        return { ...prev, [roomId]: nextList };
+      });
+    },
+    [clearTypingTimeout]
+  );
+
+  const handleTypingReceived = useCallback(
+    (payload: { roomId: string; userId: string; username: string; displayName?: string }) => {
+      if (!payload.roomId || !payload.userId) return;
+      // Never show current user's own typing activity
+      if (payload.userId === currentUserRef.current.id) return;
+
+      const now = Date.now();
+      const { roomId, userId, username } = payload;
+
+      const member = roomMembersRef.current[roomId]?.find((m) => m.id === userId);
+      const friend = friendsRef.current.find((f) => f.id === userId);
+      const resolvedDisplayName =
+        payload.displayName ||
+        member?.displayName ||
+        friend?.displayName ||
+        KNOWN_MEMBER_NAMES[userId] ||
+        username.replace(/^@/, '');
+
+      setTypingUsers((prev) => {
+        const currentList = prev[roomId] ?? [];
+        const index = currentList.findIndex((u) => u.userId === userId);
+        const newEntry: TypingUser = {
+          userId,
+          username,
+          displayName: resolvedDisplayName,
+          lastTypedAt: now,
+        };
+
+        if (index === -1) {
+          return { ...prev, [roomId]: [...currentList, newEntry] };
+        }
+
+        const nextList = [...currentList];
+        nextList[index] = newEntry;
+        return { ...prev, [roomId]: nextList };
+      });
+
+      // Reset or start the 2.8-second inactivity timeout
+      clearTypingTimeout(roomId, userId);
+      const key = `${roomId}:${userId}`;
+      const timeoutId = setTimeout(() => {
+        removeTypingUser(roomId, userId);
+      }, 2800);
+      typingTimeoutsRef.current.set(key, timeoutId);
+    },
+    [clearTypingTimeout, removeTypingUser]
+  );
+
+  const sendTyping = useCallback(
+    (roomId: string) => {
+      if (!roomId) return;
+      const now = Date.now();
+      const lastSent = lastSentTypingRef.current.get(roomId) ?? 0;
+      // Backend rate limit: max one emission every 2 seconds
+      if (now - lastSent < 2000) return;
+      lastSentTypingRef.current.set(roomId, now);
+
+      if (!isDemoMode && socketRef.current?.connected) {
+        socketRef.current.emit('ws:typing', { roomId });
+      }
+    },
+    [isDemoMode]
+  );
+
+  const simulatePartnerTyping = useCallback(
+    (roomId: string, user?: { userId: string; username: string; displayName?: string }) => {
+      if (!roomId) return;
+
+      let targetUser = user;
+      if (!targetUser) {
+        if (roomId === 'room-aryan') {
+          targetUser = {
+            userId: 'user-aryan',
+            username: 'aryan',
+            displayName: 'Aryan',
+          };
+        } else if (roomId === 'room-late-night') {
+          const activeIds = (typingUsers[roomId] ?? []).map((u) => u.userId);
+          const candidates = DEMO_GROUP_MEMBERS.filter(
+            (m) => m.id !== 'user-me' && !activeIds.includes(m.id)
+          );
+          const chosen = candidates[0] || DEMO_GROUP_MEMBERS[0];
+          targetUser = {
+            userId: chosen.id,
+            username: chosen.username.replace(/^@/, ''),
+            displayName: chosen.displayName,
+          };
+        } else {
+          const room = roomsRef.current.find((r) => r.id === roomId);
+          if (room?.recipientId) {
+            const friend = friendsRef.current.find((f) => f.id === room.recipientId);
+            targetUser = {
+              userId: room.recipientId,
+              username: friend?.username.replace(/^@/, '') || 'partner',
+              displayName: friend?.displayName || 'Partner',
+            };
+          } else {
+            targetUser = {
+              userId: 'user-meera',
+              username: 'meera',
+              displayName: 'Meera',
+            };
+          }
+        }
+      }
+
+      handleTypingReceived({
+        roomId,
+        userId: targetUser.userId,
+        username: targetUser.username,
+        displayName: targetUser.displayName,
+      });
+    },
+    [handleTypingReceived, typingUsers]
+  );
+
   const handleNewMessage = useCallback(
     (dto: MessageDto) => {
+      // Clear typing indicator for this sender immediately when their message arrives
+      removeTypingUser(dto.roomId, dto.senderId);
+
       const message = mapMessage(dto, currentUserRef.current.id);
       void hydratePhotos([message]).then(([hydrated]) => {
         upsertMessage(hydrated);
@@ -870,7 +1029,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         markIncomingAsRead(dto.roomId);
       }
     },
-    [hydratePhotos, markIncomingAsRead, upsertMessage]
+    [hydratePhotos, markIncomingAsRead, removeTypingUser, upsertMessage]
   );
 
   const startRealtime = useCallback(() => {
@@ -952,6 +1111,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     socket.on('ws:member_joined', (payload) => refreshRoom(payload.roomId));
     socket.on('ws:member_left', (payload) => refreshRoom(payload.roomId));
+    socket.on('ws:typing', handleTypingReceived);
 
     socket.on('connect_error', () => {
       void refreshSession()
@@ -971,7 +1131,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .catch(() => undefined);
       }
     });
-  }, [applyRoomDetail, handleNewMessage, isDemoMode]);
+  }, [applyRoomDetail, handleNewMessage, handleTypingReceived, isDemoMode]);
 
   const loadWorkspace = useCallback(async () => {
     const [roomList, friendList] = await Promise.all([roomApi.list(), friendApi.list()]);
@@ -1007,6 +1167,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     socketRef.current = null;
     activeRoomIdRef.current = null;
     currentUserRef.current = EMPTY_USER;
+
+    for (const timeoutId of typingTimeoutsRef.current.values()) {
+      clearTimeout(timeoutId);
+    }
+    typingTimeoutsRef.current.clear();
+    setTypingUsers({});
 
     revokeObjectUrls();
 
@@ -1086,6 +1252,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     return () => {
+      for (const timeoutId of typingTimeoutsRef.current.values()) {
+        clearTimeout(timeoutId);
+      }
+      typingTimeoutsRef.current.clear();
       socketRef.current?.disconnect();
       socketRef.current = null;
       revokeObjectUrls();
@@ -1217,6 +1387,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (activeRoomIdRef.current === roomId) {
         activeRoomIdRef.current = null;
       }
+
+      // Clear all active typing timeouts for this room
+      for (const [key, timeoutId] of typingTimeoutsRef.current.entries()) {
+        if (key.startsWith(`${roomId}:`)) {
+          clearTimeout(timeoutId);
+          typingTimeoutsRef.current.delete(key);
+        }
+      }
+
+      setTypingUsers((prev) => {
+        if (!prev[roomId] || prev[roomId].length === 0) return prev;
+        const next = { ...prev };
+        delete next[roomId];
+        return next;
+      });
+
       if (!isDemoMode) {
         socketRef.current?.emit('ws:leave_room', { roomId });
       }
@@ -1360,6 +1546,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }, 2500);
         }
 
+        removeTypingUser(roomId, currentUserRef.current.id);
         return true;
       }
 
@@ -1379,13 +1566,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           mapMessage(dto, currentUserRef.current.id),
         ]);
         upsertMessage(hydrated);
+        removeTypingUser(roomId, currentUserRef.current.id);
         return true;
       } catch (error) {
         setStorageError(errorMessage(error));
         return false;
       }
     },
-    [hydratePhotos, isDemoMode, simulateRecipientRead, upsertMessage]
+    [hydratePhotos, isDemoMode, removeTypingUser, simulateRecipientRead, upsertMessage]
   );
 
   const evictExpiredMessage = useCallback(
@@ -1521,6 +1709,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ensurePrivateRoom,
         getProfile,
         sendMessage,
+        typingUsers,
+        sendTyping,
+        simulatePartnerTyping,
         simulateRecipientRead,
         simulateGroupMemberRead,
         markIncomingAsRead,

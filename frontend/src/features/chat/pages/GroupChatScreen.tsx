@@ -1,10 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Clock, MoreVertical, Sparkles, AlertCircle, X, Users, Shield } from 'lucide-react';
 import { StatusBar, BackButton, NeonAvatar, GlassCard, useNavigation } from '@/shared';
-import { FloatingMessage, ChatInputBar, MessageTimerModal, useChatRoom } from '@/features/chat';
+import { useAuth } from '@/features/auth';
+import {
+  FloatingMessage,
+  ChatInputBar,
+  TypingIndicator,
+  MessageTimerModal,
+  useChatRoom,
+} from '@/features/chat';
 
 export const GroupChatScreen: React.FC = () => {
   const { goBack, navigateTo, activeRoomId } = useNavigation();
+  const { isDemoMode } = useAuth();
 
   const {
     room,
@@ -17,6 +25,9 @@ export const GroupChatScreen: React.FC = () => {
     evictExpiredMessage,
     storageError,
     clearStorageError,
+    typingUsers,
+    sendTyping,
+    simulatePartnerTyping,
   } = useChatRoom(activeRoomId);
 
   const [showTimerModal, setShowTimerModal] = useState(false);
@@ -160,6 +171,19 @@ export const GroupChatScreen: React.FC = () => {
               <Clock className="w-3.5 h-3.5 text-neon-purple" />
               <span>Group Timer Settings</span>
             </button>
+            {import.meta.env.DEV && isDemoMode && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOptionsMenu(false);
+                  simulatePartnerTyping();
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-cyan-300 hover:text-white hover:bg-purple-900/40 text-left border-t border-purple-500/20 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Simulate Member Typing</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -212,12 +236,16 @@ export const GroupChatScreen: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Floating Typing Indicator */}
+      <TypingIndicator typingUsers={typingUsers} isGroupChat={true} />
+
       {/* Chat Input Bar */}
       <ChatInputBar
         disabled={!room}
         onSendMessage={(text, photo) => {
           void sendMessage(text, photo);
         }}
+        onTyping={sendTyping}
       />
 
       {/* Modal: Message Timer Sheet */}

@@ -15,6 +15,9 @@ export function useChatRoom(roomId: string | undefined) {
     currentUser,
     storageError,
     clearStorageError,
+    typingUsers,
+    sendTyping,
+    simulatePartnerTyping,
   } = useChat();
 
   const currentRoomId = roomId ?? '';
@@ -22,6 +25,7 @@ export function useChatRoom(roomId: string | undefined) {
   const roomMessages = currentRoomId ? messages[currentRoomId] ?? [] : [];
   const members = currentRoomId ? (roomMembers[currentRoomId] ?? room?.memberProfiles ?? []) : [];
   const roomTimer = room?.timerMinutes ?? 15;
+  const roomTypingUsers = currentRoomId ? typingUsers[currentRoomId] ?? [] : [];
 
   const resolveMemberName = useMemo(() => {
     return createMemberNameResolver(members, currentUser.id);
@@ -44,6 +48,16 @@ export function useChatRoom(roomId: string | undefined) {
     evictExpiredMessage(currentRoomId, messageId);
   };
 
+  const notifyTyping = () => {
+    if (!currentRoomId) return;
+    sendTyping(currentRoomId);
+  };
+
+  const simulateTyping = (user?: { userId: string; username: string; displayName?: string }) => {
+    if (!currentRoomId || !simulatePartnerTyping) return;
+    simulatePartnerTyping(currentRoomId, user);
+  };
+
   return {
     room,
     messages: roomMessages,
@@ -55,6 +69,9 @@ export function useChatRoom(roomId: string | undefined) {
     evictExpiredMessage: evict,
     storageError,
     clearStorageError,
+    typingUsers: roomTypingUsers,
+    sendTyping: notifyTyping,
+    simulatePartnerTyping: simulateTyping,
   };
 }
 
