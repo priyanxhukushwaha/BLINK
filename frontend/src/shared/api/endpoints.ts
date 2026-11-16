@@ -50,6 +50,15 @@ export const userApi = {
 
   updateMe: (input: { displayName?: string; bio?: string; defaultTimerMinutes?: number }) =>
     apiRequest<AuthUserDto>('/api/users/me', { method: 'PATCH', body: input }),
+
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    return apiRequest<AuthUserDto>('/api/users/me/avatar', {
+      method: 'POST',
+      formData,
+    });
+  },
 };
 
 export const friendApi = {

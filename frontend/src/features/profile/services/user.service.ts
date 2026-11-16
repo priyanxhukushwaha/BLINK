@@ -7,6 +7,7 @@ export const userService = {
   searchUsers: (query: string): Promise<AuthUserDto[]> => userApi.search(query),
   updateProfile: (input: { displayName?: string; bio?: string; defaultTimerMinutes?: number }): Promise<AuthUserDto> =>
     userApi.updateMe(input),
+  uploadAvatar: (file: File): Promise<AuthUserDto> => userApi.uploadAvatar(file),
 };
 
 export default userService;

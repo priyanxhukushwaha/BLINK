@@ -8,6 +8,7 @@ export function useProfile() {
     getProfile,
     setDefaultTimer,
     logout,
+    updateCurrentUserProfile,
   } = useChat();
 
   return {
@@ -16,6 +17,7 @@ export function useProfile() {
     getProfile: (userId: string): Promise<UserProfile | null> => getProfile(userId),
     setDefaultTimer,
     logout,
+    updateCurrentUserProfile,
   };
 }
 

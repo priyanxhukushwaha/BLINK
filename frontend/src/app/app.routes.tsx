@@ -13,6 +13,7 @@ import {
   GroupChatScreen,
   MessageTimerModal,
 } from '@/features/chat';
+import { SettingsScreen } from '@/features/settings';
 import { AuthScreen, AuthLoadingScreen } from '@/features/auth';
 
 export const PUBLIC_INTRO_SCREENS: ScreenId[] = [
@@ -49,7 +50,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({ currentScreen, authStatus 
     case 'friend-profile':
       return <FriendProfileScreen />;
     case 'settings':
-      return <PlaceholderScreen screenNumber={6} title="Settings" />;
+      return <SettingsScreen />;
     case 'private-chat':
       return <PrivateChatScreen />;
     case 'group-chat':

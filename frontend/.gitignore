@@ -34,3 +34,5 @@ pnpm-debug.log*
 # TypeScript build info
 *.tsbuildinfo
 ideas.txt
+ROADMAP_AND_STATUS.md
+

@@ -75,6 +75,7 @@ export interface ChatContextType {
   evictExpiredMessage: (roomId: string, messageId: string) => void;
   setRoomTimer: (roomId: string, minutes: TimerOptionMinutes) => Promise<void>;
   setDefaultTimer: (minutes: TimerOptionMinutes) => Promise<void>;
+  updateCurrentUserProfile?: (updates: { displayName?: string; bio?: string; avatarUrl?: string }) => void;
   getFriendById: (friendId: string) => Friend | undefined;
   getRoomById: (roomId: string) => ConversationRoom | undefined;
 }
@@ -1675,6 +1676,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [isDemoMode]
   );
 
+  const updateCurrentUserProfile = useCallback(
+    (updates: { displayName?: string; bio?: string; avatarUrl?: string }) => {
+      setCurrentUser((prev) => {
+        const next = {
+          ...prev,
+          displayName: updates.displayName !== undefined ? updates.displayName : prev.displayName,
+          bio: updates.bio !== undefined ? updates.bio : prev.bio,
+          avatarUrl: updates.avatarUrl !== undefined ? updates.avatarUrl : prev.avatarUrl,
+        };
+        currentUserRef.current = next;
+        return next;
+      });
+    },
+    []
+  );
+
   const getFriendById = useCallback(
     (friendId: string) => friends.find((friend) => friend.id === friendId),
     [friends]
@@ -1721,6 +1738,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         evictExpiredMessage,
         setRoomTimer,
         setDefaultTimer,
+        updateCurrentUserProfile,
         getFriendById,
         getRoomById,
       }}
