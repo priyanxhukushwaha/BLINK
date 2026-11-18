@@ -543,7 +543,7 @@ export const SettingsScreen: React.FC = () => {
               </div>
 
               <p className="text-[10px] text-purple-300/45 mt-2 leading-relaxed">
-                Usernames are permanent and cryptographically tied to your identity.
+                Your username is permanent and cannot be changed.
               </p>
             </GlassCard>
           </div>
