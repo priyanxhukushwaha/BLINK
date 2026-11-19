@@ -6,6 +6,7 @@ import {
   FloatingMessage,
   ChatInputBar,
   TypingIndicator,
+  ScreenshotNotice,
   MessageTimerModal,
   useChat,
   useChatRoom,
@@ -25,6 +26,7 @@ export const PrivateChatScreen: React.FC = () => {
     evictExpiredMessage,
     storageError,
     clearStorageError,
+    screenshotAlert,
     typingUsers,
     sendTyping,
     simulatePartnerTyping,
@@ -177,6 +179,8 @@ export const PrivateChatScreen: React.FC = () => {
         </div>
       )}
 
+      <ScreenshotNotice alert={screenshotAlert} />
+
       {/* Floating-Text Message Stream (NO BOXED CHAT BUBBLES) */}
       <div className="flex-1 px-4 py-4 overflow-y-auto space-y-1">
         {roomMessages.length > 0 ? (
@@ -232,4 +236,3 @@ export const PrivateChatScreen: React.FC = () => {
 
 export { PrivateChatScreen as PrivateChatRoom };
 export default PrivateChatScreen;
-

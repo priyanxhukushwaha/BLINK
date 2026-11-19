@@ -5,6 +5,7 @@ import { createMemberNameResolver } from '../utils/memberUtils';
 export function useChatRoom(roomId: string | undefined) {
   const {
     messages,
+    screenshotAlerts,
     openRoom,
     leaveRoom,
     sendMessage,
@@ -61,6 +62,7 @@ export function useChatRoom(roomId: string | undefined) {
   return {
     room,
     messages: roomMessages,
+    screenshotAlert: currentRoomId ? screenshotAlerts[currentRoomId] : undefined,
     members,
     roomTimer,
     currentUser,
@@ -76,4 +78,3 @@ export function useChatRoom(roomId: string | undefined) {
 }
 
 export default useChatRoom;
-

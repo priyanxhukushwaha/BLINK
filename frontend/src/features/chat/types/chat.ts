@@ -1,5 +1,13 @@
 export type TimerOptionMinutes = 1 | 5 | 15 | 30 | 60;
 
+export interface ScreenshotAlert {
+  roomId: string;
+  userId: string;
+  displayName: string;
+  source: 'shortcut' | 'mobile_visibility';
+  occurredAt: number;
+}
+
 export interface RoomMemberProfile {
   id: string;
   username: string;

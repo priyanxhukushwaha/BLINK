@@ -10,6 +10,7 @@ import { errorResponse } from './socket.util';
 import { registerMessageEvents } from './events/message.events';
 import { registerReadEvents } from './events/read.events';
 import { registerRoomEvents } from './events/room.events';
+import { registerScreenshotEvents } from './events/screenshot.events';
 import { registerTypingEvents } from './events/typing.events';
 
 export function registerSocketHandlers(_io: BlinkServer, socket: BlinkSocket): void {
@@ -91,6 +92,7 @@ export function registerSocketHandlers(_io: BlinkServer, socket: BlinkSocket): v
   registerMessageEvents(socket);
   registerReadEvents(socket);
   registerTypingEvents(socket);
+  registerScreenshotEvents(socket);
 
   socket.on('disconnect', (reason) => {
     if (socket.data.authTimer) {
