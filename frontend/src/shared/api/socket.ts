@@ -19,6 +19,13 @@ export interface ServerToClientEvents {
   'ws:member_joined': (payload: { roomId: string; user: RoomMemberDto }) => void;
   'ws:member_left': (payload: { roomId: string; userId: string }) => void;
   'ws:typing': (payload: { roomId: string; userId: string; username: string }) => void;
+  'ws:screenshot_taken': (payload: {
+    roomId: string;
+    userId: string;
+    displayName: string;
+    source: 'shortcut' | 'mobile_visibility';
+    occurredAt: number;
+  }) => void;
   'ws:notification': (payload: { type: string; data: unknown }) => void;
 }
 
@@ -26,6 +33,10 @@ export interface ClientToServerEvents {
   'ws:join_room': (payload: { roomId: string }) => void;
   'ws:leave_room': (payload: { roomId: string }) => void;
   'ws:typing': (payload: { roomId: string }) => void;
+  'ws:screenshot_report': (
+    payload: { roomId: string; source: 'shortcut' | 'mobile_visibility' },
+    ack?: (response: { ok: boolean; error?: { code: string; message: string } }) => void
+  ) => void;
 }
 
 export type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents>;

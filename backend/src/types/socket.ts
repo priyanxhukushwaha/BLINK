@@ -24,6 +24,10 @@ export interface ClientToServerEvents {
     ack?: (response: AckResponse<{ readCount: number }>) => void,
   ) => void;
   'ws:typing': (payload: { roomId: string }) => void;
+  'ws:screenshot_report': (
+    payload: { roomId: string; source: 'shortcut' | 'mobile_visibility' },
+    ack?: (response: AckResponse) => void,
+  ) => void;
 }
 
 export interface ServerToClientEvents {
@@ -42,6 +46,13 @@ export interface ServerToClientEvents {
   'ws:member_joined': (payload: { roomId: string; user: RoomMemberUser }) => void;
   'ws:member_left': (payload: { roomId: string; userId: string }) => void;
   'ws:typing': (payload: { roomId: string; userId: string; username: string }) => void;
+  'ws:screenshot_taken': (payload: {
+    roomId: string;
+    userId: string;
+    displayName: string;
+    source: 'shortcut' | 'mobile_visibility';
+    occurredAt: number;
+  }) => void;
   'ws:notification': (payload: { type: string; data: NotificationDto }) => void;
 }
 

@@ -6,6 +6,7 @@ import {
   FloatingMessage,
   ChatInputBar,
   TypingIndicator,
+  ScreenshotNotice,
   MessageTimerModal,
   useChatRoom,
 } from '@/features/chat';
@@ -25,6 +26,7 @@ export const GroupChatScreen: React.FC = () => {
     evictExpiredMessage,
     storageError,
     clearStorageError,
+    screenshotAlert,
     typingUsers,
     sendTyping,
     simulatePartnerTyping,
@@ -205,6 +207,8 @@ export const GroupChatScreen: React.FC = () => {
         </div>
       )}
 
+      <ScreenshotNotice alert={screenshotAlert} />
+
       {/* Floating-Text Multi-User Message Stream */}
       <div className="flex-1 px-4 py-4 overflow-y-auto space-y-1">
         {roomMessages.length > 0 ? (
@@ -333,4 +337,3 @@ export const GroupChatScreen: React.FC = () => {
 
 export { GroupChatScreen as GroupChatRoom };
 export default GroupChatScreen;
-

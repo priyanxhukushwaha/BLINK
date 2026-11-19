@@ -139,6 +139,31 @@ describeIfDatabase('realtime (integration)', () => {
     const typing = await typingOnA;
     expect(typing.userId).toBe(b.user.id);
     expect(typing.roomId).toBe(roomId);
+
+    const screenshotOnB = waitForEvent(clientB, 'ws:screenshot_taken');
+    const screenshotAck = await emitWithAck(clientA, 'ws:screenshot_report', {
+      roomId,
+      source: 'shortcut',
+    });
+    expect(screenshotAck.ok).toBe(true);
+    expect(await screenshotOnB).toMatchObject({
+      roomId,
+      userId: a.user.id,
+      displayName: 'Aryan',
+      source: 'shortcut',
+    });
+
+    const outsider = await registerUser(app, 'rohan', 'Rohan');
+    const outsiderSocket = connect(outsider.accessToken);
+    await waitForEvent(outsiderSocket, 'ws:authenticated');
+    const deniedScreenshot = await emitWithAck(outsiderSocket, 'ws:screenshot_report', {
+      roomId,
+      source: 'shortcut',
+    });
+    expect(deniedScreenshot.ok).toBe(false);
+    if (!deniedScreenshot.ok) {
+      expect(deniedScreenshot.error.code).toBe('NOT_A_ROOM_MEMBER');
+    }
   });
 
   it('rejects socket actions before authentication', async () => {

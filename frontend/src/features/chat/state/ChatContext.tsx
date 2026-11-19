@@ -6,7 +6,13 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Message, ConversationRoom, TimerOptionMinutes, RoomMemberProfile } from '../types/chat';
+import {
+  Message,
+  ConversationRoom,
+  TimerOptionMinutes,
+  RoomMemberProfile,
+  ScreenshotAlert,
+} from '../types/chat';
 import { UserProfile, Friend } from '@/features/profile/types/user';
 import {
   ApiRequestError,
@@ -61,6 +67,7 @@ export interface ChatContextType {
   activeRoomTimer: TimerOptionMinutes;
   storageError: string | null;
   clearStorageError: () => void;
+  screenshotAlerts: Record<string, ScreenshotAlert>;
   openRoom: (roomId: string) => Promise<void>;
   leaveRoom: (roomId: string) => void;
   ensurePrivateRoom: (friendId: string) => Promise<string | null>;
@@ -652,6 +659,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeRoomTimer, setActiveRoomTimer] = useState<TimerOptionMinutes>(15);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Record<string, TypingUser[]>>({});
+  const [screenshotAlerts, setScreenshotAlerts] = useState<Record<string, ScreenshotAlert>>({});
 
   const socketRef = useRef<ChatSocket | null>(null);
   const currentUserRef = useRef<UserProfile>(EMPTY_USER);
@@ -664,6 +672,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const photoUrlCacheRef = useRef<Map<string, string>>(new Map());
   const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const lastSentTypingRef = useRef<Map<string, number>>(new Map());
+  const screenshotAlertTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const lastScreenshotReportAtRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     currentUserRef.current = currentUser;
@@ -1042,6 +1052,52 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [hydratePhotos, markIncomingAsRead, removeTypingUser, upsertMessage]
   );
 
+  const reportScreenshot = useCallback(
+    (source: 'shortcut' | 'mobile_visibility') => {
+      const roomId = activeRoomIdRef.current;
+      const socket = socketRef.current;
+      if (isDemoMode || authStatus !== 'authenticated' || !roomId || !socket?.connected) return;
+
+      const now = Date.now();
+      if (now - (lastScreenshotReportAtRef.current.get(roomId) ?? 0) < 10_000) return;
+      lastScreenshotReportAtRef.current.set(roomId, now);
+      socket.emit('ws:screenshot_report', { roomId, source });
+    },
+    [authStatus, isDemoMode]
+  );
+
+  useEffect(() => {
+    if (isDemoMode || authStatus !== 'authenticated') return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if (
+        event.key === 'PrintScreen' ||
+        (event.shiftKey &&
+          event.metaKey &&
+          ['Digit3', 'Digit4', 'Digit5'].includes(event.code)) ||
+        (event.shiftKey && (event.metaKey || event.ctrlKey) && key === 's')
+      ) {
+        reportScreenshot('shortcut');
+      }
+    };
+
+    const mobilePointer = window.matchMedia('(pointer: coarse)');
+    const handleVisibilityChange = () => {
+      // shortcut: mobile browsers cannot distinguish a screenshot from app switching; use native APIs for accurate detection.
+      if (mobilePointer.matches && document.visibilityState === 'hidden') {
+        reportScreenshot('mobile_visibility');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [authStatus, isDemoMode, reportScreenshot]);
+
   const startRealtime = useCallback(() => {
     if (isDemoMode) return;
     socketRef.current?.disconnect();
@@ -1052,6 +1108,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     socketRef.current = socket;
 
     socket.on('ws:new_message', handleNewMessage);
+
+    socket.on('ws:screenshot_taken', (alert) => {
+      setScreenshotAlerts((prev) => ({ ...prev, [alert.roomId]: alert }));
+      const previousTimeout = screenshotAlertTimeoutsRef.current.get(alert.roomId);
+      if (previousTimeout) clearTimeout(previousTimeout);
+      const timeout = setTimeout(() => {
+        setScreenshotAlerts((prev) => {
+          if (prev[alert.roomId]?.occurredAt !== alert.occurredAt) return prev;
+          const next = { ...prev };
+          delete next[alert.roomId];
+          return next;
+        });
+        screenshotAlertTimeoutsRef.current.delete(alert.roomId);
+      }, 8000);
+      screenshotAlertTimeoutsRef.current.set(alert.roomId, timeout);
+    });
 
     socket.on('ws:message_read', (payload) => {
       setMessages((prev) => {
@@ -1183,6 +1255,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     typingTimeoutsRef.current.clear();
     setTypingUsers({});
+    for (const timeoutId of screenshotAlertTimeoutsRef.current.values()) {
+      clearTimeout(timeoutId);
+    }
+    screenshotAlertTimeoutsRef.current.clear();
+    lastScreenshotReportAtRef.current.clear();
+    setScreenshotAlerts({});
 
     revokeObjectUrls();
 
@@ -1266,6 +1344,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearTimeout(timeoutId);
       }
       typingTimeoutsRef.current.clear();
+      for (const timeoutId of screenshotAlertTimeoutsRef.current.values()) {
+        clearTimeout(timeoutId);
+      }
+      screenshotAlertTimeoutsRef.current.clear();
       socketRef.current?.disconnect();
       socketRef.current = null;
       revokeObjectUrls();
@@ -1724,6 +1806,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeRoomTimer,
         storageError,
         clearStorageError,
+        screenshotAlerts,
         openRoom,
         leaveRoom,
         ensurePrivateRoom,

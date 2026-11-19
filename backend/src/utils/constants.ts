@@ -37,6 +37,7 @@ export const WS_EVENTS = {
   SEND_MESSAGE: 'ws:send_message',
   MARK_READ: 'ws:mark_read',
   TYPING: 'ws:typing',
+  REPORT_SCREENSHOT: 'ws:screenshot_report',
   AUTHENTICATED: 'ws:authenticated',
   NEW_MESSAGE: 'ws:new_message',
   MESSAGE_READ: 'ws:message_read',
@@ -45,6 +46,7 @@ export const WS_EVENTS = {
   ROOM_TIMER_UPDATED: 'ws:room_timer_updated',
   MEMBER_JOINED: 'ws:member_joined',
   MEMBER_LEFT: 'ws:member_left',
+  SCREENSHOT_TAKEN: 'ws:screenshot_taken',
   NOTIFICATION: 'ws:notification',
 } as const;
 
@@ -56,6 +58,8 @@ export const SOCKET_LIMITS = {
   joinRoomPerMinute: 60,
   typingPerMinute: 60,
   typingMinIntervalMs: 1000,
+  screenshotPerMinute: 6,
+  screenshotMinIntervalMs: 10_000,
 } as const;
 
 export function isTimerOption(value: number): value is TimerOptionMinutes {
