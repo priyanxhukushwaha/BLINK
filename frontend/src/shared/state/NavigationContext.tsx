@@ -12,8 +12,8 @@ interface NavigationContextType extends NavigationState {
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
 export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [history, setHistory] = useState<ScreenId[]>(['splash']);
-  const [currentScreen, setCurrentScreen] = useState<ScreenId>('splash');
+  const [history, setHistory] = useState<ScreenId[]>(['home-rooms']);
+  const [currentScreen, setCurrentScreen] = useState<ScreenId>('home-rooms');
   const [activeRoomId, setActiveRoomId] = useState<string | undefined>(undefined);
   const [selectedFriendId, setSelectedFriendId] = useState<string | undefined>(undefined);
   const [activeNavTab, setActiveNavTab] = useState<BottomNavTab>('home');

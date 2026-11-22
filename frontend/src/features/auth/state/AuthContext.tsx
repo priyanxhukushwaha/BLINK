@@ -51,20 +51,27 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isDemoMode, setIsDemoMode] = useState<boolean>(() => {
     if (!import.meta.env.DEV) return false;
-    return localStorage.getItem(DEV_DEMO_STORAGE_KEY) === 'true';
+    const stored = localStorage.getItem(DEV_DEMO_STORAGE_KEY);
+    return stored === null ? true : stored === 'true';
   });
 
   const [authStatus, setAuthStatus] = useState<AuthStatus>(() => {
-    if (import.meta.env.DEV && localStorage.getItem(DEV_DEMO_STORAGE_KEY) === 'true') {
-      return 'authenticated';
+    if (import.meta.env.DEV) {
+      const stored = localStorage.getItem(DEV_DEMO_STORAGE_KEY);
+      if (stored === null || stored === 'true') {
+        return 'authenticated';
+      }
     }
     return 'loading';
   });
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
-    if (import.meta.env.DEV && localStorage.getItem(DEV_DEMO_STORAGE_KEY) === 'true') {
-      return DEMO_USER;
+    if (import.meta.env.DEV) {
+      const stored = localStorage.getItem(DEV_DEMO_STORAGE_KEY);
+      if (stored === null || stored === 'true') {
+        return DEMO_USER;
+      }
     }
     return EMPTY_USER;
   });
@@ -81,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const exitDemoMode = useCallback(() => {
-    localStorage.removeItem(DEV_DEMO_STORAGE_KEY);
+    localStorage.setItem(DEV_DEMO_STORAGE_KEY, 'false');
     setIsDemoMode(false);
     setCurrentUser(EMPTY_USER);
     setAuthStatus('unauthenticated');

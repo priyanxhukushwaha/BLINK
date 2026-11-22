@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { Search, Bell, Clock, Users, X, MessageSquare, Plus, UserPlus, Sparkles, MessageCircle } from 'lucide-react';
-import { StatusBar, NeonAvatar, BottomNav, GlassCard, useNavigation } from '@/shared';
+import { Search, Clock, Users, X, MessageSquare } from 'lucide-react';
+import { StatusBar, NeonAvatar, useNavigation } from '@/shared';
 import { useChat, ConversationRoom } from '@/features/chat';
 
 export const HomeScreen: React.FC = () => {
-  const { navigateTo, activeNavTab, setActiveNavTab } = useNavigation();
-  const { rooms, friends, ensurePrivateRoom } = useChat();
+  const { navigateTo } = useNavigation();
+  const { rooms, friends, ensurePrivateRoom, currentUser } = useChat();
 
   const [activeTab, setActiveTab] = useState<'rooms' | 'friends'>('rooms');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [showActionMenu, setShowActionMenu] = useState(false);
 
   // Search filtering
   const filteredRooms = rooms.filter((r) =>
@@ -105,8 +104,8 @@ export const HomeScreen: React.FC = () => {
               </span>
             </div>
 
-            {/* Actions: Search & Notifications */}
-            <div className="flex items-center gap-1">
+            {/* Actions: Search & Profile */}
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setIsSearching(true)}
@@ -117,12 +116,17 @@ export const HomeScreen: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => navigateTo('private-notifications')}
-                aria-label="Private Notifications"
-                className="relative p-2 rounded-full text-purple-200/80 hover:text-white hover:bg-white/[0.06] transition-all"
+                onClick={() => navigateTo('my-profile')}
+                aria-label="Profile"
+                className="relative rounded-full ring-1 ring-purple-500/40 hover:ring-purple-400 hover:scale-105 active:scale-95 transition-all cursor-pointer p-0.5"
+                title="My Profile & Settings"
               >
-                <Bell className="w-4 h-4" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-neon-purple shadow-[0_0_8px_#A855F7] animate-pulse" />
+                <NeonAvatar
+                  src={currentUser.avatarUrl}
+                  name={currentUser.displayName || 'You'}
+                  size="xs"
+                  glow={false}
+                />
               </button>
             </div>
           </div>
@@ -320,114 +324,6 @@ export const HomeScreen: React.FC = () => {
           )
         )}
       </div>
-
-      {/* Action Menu Modal (Opened by Central + Button) */}
-      {showActionMenu && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in"
-          onClick={() => setShowActionMenu(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl bg-[#130728] border border-purple-500/30 p-5 shadow-[0_0_50px_rgba(168,85,247,0.35)] space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-purple-500/20">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-neon-purple animate-pulse" />
-                <h3 className="text-sm font-bold text-white tracking-wide">
-                  New Blink Action
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowActionMenu(false)}
-                className="p-1 rounded-full text-purple-300/60 hover:text-white hover:bg-white/[0.06]"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Action 1: Start Private Chat */}
-            <GlassCard
-              hoverEffect
-              onClick={() => {
-                setShowActionMenu(false);
-                setActiveTab('friends');
-              }}
-              className="p-3.5 flex items-center gap-3 cursor-pointer"
-            >
-              <div className="p-2.5 rounded-xl bg-purple-900/50 border border-purple-400/30 text-purple-200">
-                <MessageCircle className="w-5 h-5 stroke-[2.2]" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-semibold text-white">Start Private Chat</span>
-                <span className="text-[11px] text-purple-300/60">
-                  Pick a friend for a direct floating conversation
-                </span>
-              </div>
-            </GlassCard>
-
-            {/* Action 2: Open Group Room */}
-            <GlassCard
-              hoverEffect
-              onClick={() => {
-                setShowActionMenu(false);
-                const group = rooms.find((room) => room.type === 'group');
-                if (group) {
-                  navigateTo('group-chat', { roomId: group.id });
-                } else {
-                  setActiveTab('rooms');
-                }
-              }}
-              className="p-3.5 flex items-center gap-3 cursor-pointer"
-            >
-              <div className="p-2.5 rounded-xl bg-fuchsia-900/50 border border-fuchsia-400/30 text-fuchsia-200">
-                <Users className="w-5 h-5 stroke-[2.2]" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-semibold text-white">Group Rooms</span>
-                <span className="text-[11px] text-purple-300/60">
-                  Multi-member rooms with first-seen expiration
-                </span>
-              </div>
-            </GlassCard>
-
-            {/* Action 3: Invite Friends */}
-            <GlassCard
-              hoverEffect
-              onClick={() => {
-                setShowActionMenu(false);
-                navigateTo('invite-friends');
-              }}
-              className="p-3.5 flex items-center gap-3 cursor-pointer"
-            >
-              <div className="p-2.5 rounded-xl bg-cyan-950/50 border border-cyan-400/30 text-cyan-200">
-                <UserPlus className="w-5 h-5 stroke-[2.2]" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-semibold text-white">Invite Friends</span>
-                <span className="text-[11px] text-purple-300/60">
-                  Share your temporary invite link
-                </span>
-              </div>
-            </GlassCard>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Bottom Navigation Dock */}
-      <BottomNav
-        activeTab={activeNavTab}
-        onTabChange={(tab) => {
-          setActiveNavTab(tab);
-          if (tab === 'profile') navigateTo('my-profile');
-          if (tab === 'rooms') setActiveTab('rooms');
-          if (tab === 'chat') setActiveTab('friends');
-          if (tab === 'home') navigateTo('home-rooms');
-        }}
-        onNewAction={() => setShowActionMenu(true)}
-      />
     </div>
   );
 };

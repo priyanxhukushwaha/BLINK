@@ -339,30 +339,6 @@ export const INITIAL_DEMO_ROOMS: ConversationRoom[] = [
     lastMessageText: 'Done!',
     timerMinutes: 5,
   },
-  {
-    id: 'room-project-squad',
-    name: 'Project Squad',
-    type: 'group',
-    avatarUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=300&auto=format&fit=crop&q=80',
-    memberCount: 5,
-    members: ['user-kabir', 'user-aryan', 'user-me', 'user-sneha', 'user-rohan'],
-    adminId: 'user-kabir',
-    adminName: 'Kabir',
-    lastMessageText: 'Review tomorrow at 10am',
-    timerMinutes: 60,
-  },
-  {
-    id: 'room-weekend-plans',
-    name: 'Weekend Plans 🌊',
-    type: 'group',
-    avatarUrl: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=300&auto=format&fit=crop&q=80',
-    memberCount: 8,
-    members: ['user-aryan', 'user-meera', 'user-tanya', 'user-me', 'user-dev', 'user-zara', 'user-aditi', 'user-vikram'],
-    adminId: 'user-aryan',
-    adminName: 'Aryan',
-    lastMessageText: 'Anyone up for the stargazing drive?',
-    timerMinutes: 15,
-  },
 ];
 
 export function getDemoRooms(): ConversationRoom[] {
