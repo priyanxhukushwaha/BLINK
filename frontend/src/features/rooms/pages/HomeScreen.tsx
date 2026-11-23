@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Clock, Users, X, MessageSquare } from 'lucide-react';
+import { Search, Clock, Users, User, X, MessageSquare } from 'lucide-react';
 import { StatusBar, NeonAvatar, useNavigation } from '@/shared';
 import { useChat, ConversationRoom } from '@/features/chat';
 
@@ -7,7 +7,7 @@ export const HomeScreen: React.FC = () => {
   const { navigateTo } = useNavigation();
   const { rooms, friends, ensurePrivateRoom, currentUser } = useChat();
 
-  const [activeTab, setActiveTab] = useState<'rooms' | 'friends'>('rooms');
+  const [activeTab, setActiveTab] = useState<'friends' | 'rooms'>('friends');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -132,111 +132,39 @@ export const HomeScreen: React.FC = () => {
           </div>
         )}
 
-        {/* Segmented Navigation Control: Rooms vs Friends */}
+        {/* Segmented Navigation Control: 1-to-1 Personal Chat (Friends) first, Group Chat (Rooms) second */}
         <div className="flex p-1 mt-2.5 rounded-full bg-[#150a2e]/60 border border-purple-500/20 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
           <button
             type="button"
-            onClick={() => setActiveTab('rooms')}
-            className={`flex-1 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${
-              activeTab === 'rooms'
-                ? 'bg-gradient-to-r from-purple-600 via-fuchsia-600 to-violet-600 text-white shadow-[0_0_18px_rgba(168,85,247,0.5)]'
-                : 'text-purple-300/70 hover:text-white'
-            }`}
-          >
-            Rooms
-          </button>
-          <button
-            type="button"
             onClick={() => setActiveTab('friends')}
-            className={`flex-1 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${
+            className={`flex-1 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 flex items-center justify-center gap-1.5 ${
               activeTab === 'friends'
                 ? 'bg-gradient-to-r from-purple-600 via-fuchsia-600 to-violet-600 text-white shadow-[0_0_18px_rgba(168,85,247,0.5)]'
                 : 'text-purple-300/70 hover:text-white'
             }`}
           >
-            Friends
+            <User className="w-3.5 h-3.5" />
+            <span>Friends</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('rooms')}
+            className={`flex-1 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 flex items-center justify-center gap-1.5 ${
+              activeTab === 'rooms'
+                ? 'bg-gradient-to-r from-purple-600 via-fuchsia-600 to-violet-600 text-white shadow-[0_0_18px_rgba(168,85,247,0.5)]'
+                : 'text-purple-300/70 hover:text-white'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Rooms</span>
           </button>
         </div>
       </div>
 
       {/* Main Conversation List (Minimal, spacious, floating aesthetic, NO boxed cards) */}
       <div className="flex-1 px-5 py-3 overflow-y-auto space-y-2">
-        {activeTab === 'rooms' ? (
-          // ROOMS TAB:
-          // Clicking an avatar opens the chat partner/admin profile.
-          // Clicking the row opens the matching chat room.
-          filteredRooms.length > 0 ? (
-            filteredRooms.map((room) => (
-              <div
-                key={room.id}
-                onClick={() => openRoom(room)}
-                className="group flex items-center justify-between py-3.5 px-3 rounded-2xl hover:bg-white/[0.04] transition-all duration-200 cursor-pointer"
-              >
-                {/* Left: Avatar */}
-                <div className="flex items-center gap-3.5">
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openRoomOwnerProfile(room);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        openRoomOwnerProfile(room);
-                      }
-                    }}
-                    className="group/avatar relative cursor-pointer focus:outline-none flex-shrink-0"
-                    title={
-                      room.type === 'private'
-                        ? `View ${room.name}'s profile`
-                        : `View Group Admin Profile (${room.adminName || 'Admin'})`
-                    }
-                  >
-                    <NeonAvatar
-                      src={room.avatarUrl}
-                      name={room.name}
-                      size="md"
-                      glow
-                      glowColor="purple"
-                      className="group-hover/avatar:scale-105 group-hover/avatar:ring-purple-400 transition-all duration-300"
-                    />
-                  </div>
-
-                  {/* Room Name + Members + Message Preview */}
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-white tracking-wide group-hover:text-purple-200 transition-colors">
-                        {room.name}
-                      </span>
-                      {room.type === 'group' && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-purple-300/60 bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-500/15">
-                          <Users className="w-2.5 h-2.5 text-purple-400 stroke-[2.5]" />
-                          {room.memberCount}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-purple-200/60 mt-0.5 truncate max-w-[210px]">
-                      {room.lastMessageText}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Right: Remaining Room Timer Badge */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-950/50 border border-purple-500/20 text-purple-300/80 text-[11px] font-mono shadow-[0_0_10px_rgba(168,85,247,0.15)]">
-                  <Clock className="w-3 h-3 text-purple-400" />
-                  <span>{room.timerMinutes}m</span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="py-12 text-center text-xs text-purple-300/50">
-              {searchQuery ? `No rooms matching "${searchQuery}"` : 'No conversations yet'}
-            </div>
-          )
-        ) : (
-          // FRIENDS TAB:
+        {activeTab === 'friends' ? (
+          // 1-TO-1 PERSONAL CHAT (FRIENDS TAB):
           // Avatar opens the friend profile; name/row opens the private chat.
           filteredFriends.length > 0 ? (
             filteredFriends.map((friend) => (
@@ -319,7 +247,81 @@ export const HomeScreen: React.FC = () => {
             ))
           ) : (
             <div className="py-12 text-center text-xs text-purple-300/50">
-              {searchQuery ? `No friends matching "${searchQuery}"` : 'No friends yet'}
+              {searchQuery ? `No friends matching "${searchQuery}"` : 'No conversations yet'}
+            </div>
+          )
+        ) : (
+          // GROUP CHAT (ROOMS TAB):
+          // Clicking an avatar opens the chat partner/admin profile.
+          // Clicking the row opens the matching chat room.
+          filteredRooms.length > 0 ? (
+            filteredRooms.map((room) => (
+              <div
+                key={room.id}
+                onClick={() => openRoom(room)}
+                className="group flex items-center justify-between py-3.5 px-3 rounded-2xl hover:bg-white/[0.04] transition-all duration-200 cursor-pointer"
+              >
+                {/* Left: Avatar */}
+                <div className="flex items-center gap-3.5">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openRoomOwnerProfile(room);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        openRoomOwnerProfile(room);
+                      }
+                    }}
+                    className="group/avatar relative cursor-pointer focus:outline-none flex-shrink-0"
+                    title={
+                      room.type === 'private'
+                        ? `View ${room.name}'s profile`
+                        : `View Group Admin Profile (${room.adminName || 'Admin'})`
+                    }
+                  >
+                    <NeonAvatar
+                      src={room.avatarUrl}
+                      name={room.name}
+                      size="md"
+                      glow
+                      glowColor="purple"
+                      className="group-hover/avatar:scale-105 group-hover/avatar:ring-purple-400 transition-all duration-300"
+                    />
+                  </div>
+
+                  {/* Room Name + Members + Message Preview */}
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-white tracking-wide group-hover:text-purple-200 transition-colors">
+                        {room.name}
+                      </span>
+                      {room.type === 'group' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-purple-300/60 bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-500/15">
+                          <Users className="w-2.5 h-2.5 text-purple-400 stroke-[2.5]" />
+                          {room.memberCount}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-purple-200/60 mt-0.5 truncate max-w-[210px]">
+                      {room.lastMessageText}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right: Remaining Room Timer Badge */}
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-950/50 border border-purple-500/20 text-purple-300/80 text-[11px] font-mono shadow-[0_0_10px_rgba(168,85,247,0.15)]">
+                  <Clock className="w-3 h-3 text-purple-400" />
+                  <span>{room.timerMinutes}m</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-12 text-center text-xs text-purple-300/50">
+              {searchQuery ? `No rooms matching "${searchQuery}"` : 'No rooms yet'}
             </div>
           )
         )}
